@@ -69,37 +69,53 @@ const TablaAsistencia = ({ docenteId = 1 }) => {
   };
 
   // 3. Cargar lista de alumnos y registros de asistencia desde PHP
-  const cargarDatos = () => {
-    if (!seccionSeleccionada || !asignaturaSeleccionada) return;
+ // Cargar lista de alumnos y registros de asistencia desde PHP
+const cargarDatos = () => {
+  if (!seccionSeleccionada || !asignaturaSeleccionada) return;
 
-    const secParam = encodeURIComponent(seccionSeleccionada.trim());
-    const asigParam = encodeURIComponent(asignaturaSeleccionada.trim());
-    const periodoParam = encodeURIComponent(periodo);
+  const secParam = encodeURIComponent(seccionSeleccionada.trim());
+  const asigParam = encodeURIComponent(asignaturaSeleccionada.trim());
+  const periodoParam = encodeURIComponent(periodo);
+  
+  // OBTENER LA FECHA ACTUAL EN FORMATO YYYY-MM-DD
+  const fechaHoy = new Date().toISOString().split('T')[0];
 
-    const url = vistaReporte 
-      ? `${API_BASE}/reporte_mensual.php?seccion=${secParam}&asignatura=${asigParam}&periodo=${periodoParam}`
-      : `${API_BASE}/asistencia.php?seccion=${secParam}&asignatura=${asigParam}&periodo=${periodoParam}`;
+  // INCLUIR &fecha= EN LA URL
+  const url = vistaReporte 
+    ? `${API_BASE}/reporte_mensual.php?seccion=${secParam}&asignatura=${asigParam}&periodo=${periodoParam}&fecha=${fechaHoy}`
+    : `${API_BASE}/asistencia.php?seccion=${secParam}&asignatura=${asigParam}&periodo=${periodoParam}&fecha=${fechaHoy}`;
 
-    fetch(url)
-      .then((res) => {
-        if (!res.ok) throw new Error("Error en la respuesta del servidor");
-        return res.json();
-      })
-      .then((data) => {
-        if (data.success) {
-          if (vistaReporte) {
-            setAlumnos(data.reporte || []);
-          } else {
-            setAlumnos(data.alumnos || []);
-            // Filtrar cualquier fecha inválida como '00/00' o nula
-            const fechasValidas = (data.fechas || []).filter(f => f && f !== '00/00');
-            setFechasHeader(fechasValidas);
-            setAsistenciasGuardadas(data.asistencias || {});
-          }
+  fetch(url)
+    .then((res) => {
+      if (!res.ok) throw new Error("Error en la respuesta del servidor");
+      return res.json();
+    })
+    .then((data) => {
+      if (data.success) {
+        if (vistaReporte) {
+          setAlumnos(data.reporte || []);
+        } else {
+          // Extraer los alumnos retornados por el backend
+          const listaAlumnos = data.alumnos || data.data || [];
+          setAlumnos(listaAlumnos);
+
+          // Mapear la asistencia individual que devuelve tu PHP
+          const mapaAsistencias = {};
+          const fechaHeaderCorta = fechaHoy.substring(5).replace('-', '/'); // "09/19"
+          
+          listaAlumnos.forEach(alumno => {
+            if (alumno.asistencia && alumno.asistencia !== '--') {
+              mapaAsistencias[`${alumno.id}-${fechaHeaderCorta}`] = alumno.asistencia;
+            }
+          });
+
+          setFechasHeader([fechaHeaderCorta]);
+          setAsistenciasGuardadas(mapaAsistencias);
         }
-      })
-      .catch((err) => console.error("Error al obtener datos:", err));
-  };
+      }
+    })
+    .catch((err) => console.error("Error al obtener datos:", err));
+};
 
   useEffect(() => {
     cargarDatos();
