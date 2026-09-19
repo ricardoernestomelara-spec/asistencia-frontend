@@ -15,6 +15,15 @@ const TablaAsistencia = ({ docenteId = 1 }) => {
   const [asignaturaSeleccionada, setAsignaturaSeleccionada] = useState('');
   const [periodo, setPeriodo] = useState('1');
   
+  // Estado para controlar la fecha activa de consulta (Por defecto hoy: YYYY-MM-DD)
+  const [fechaConsulta, setFechaConsulta] = useState(() => {
+    const hoy = new Date();
+    const year = hoy.getFullYear();
+    const month = String(hoy.getMonth() + 1).padStart(2, '0');
+    const day = String(hoy.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  });
+
   const [vistaReporte, setVistaReporte] = useState(false);
   const [mostrarModalPasarAsistencia, setMostrarModalPasarAsistencia] = useState(false);
   
@@ -69,25 +78,26 @@ const TablaAsistencia = ({ docenteId = 1 }) => {
   };
 
   // 3. Cargar lista de alumnos y registros de asistencia desde PHP
-  const cargarDatos = () => {
+  const cargarDatos = (fechaTarget = fechaConsulta) => {
     if (!seccionSeleccionada || !asignaturaSeleccionada) return;
 
     const secParam = encodeURIComponent(seccionSeleccionada.trim());
     const asigParam = encodeURIComponent(asignaturaSeleccionada.trim());
     const periodoParam = encodeURIComponent(periodo);
     
-    // Obtener fecha actual en formato local YYYY-MM-DD sin desfase de zona horaria
-    const hoy = new Date();
-    const year = hoy.getFullYear();
-    const month = String(hoy.getMonth() + 1).padStart(2, '0');
-    const day = String(hoy.getDate()).padStart(2, '0');
-    
-    const fechaHoyISO = `${year}-${month}-${day}`; // "2026-09-19"
-    const fechaHeaderCorta = `${month}/${day}`;    // "09/19"
+    // Obtener formato corto para el encabezado (MM/DD) a partir de fechaTarget (YYYY-MM-DD)
+    const partesFecha = fechaTarget.split('-');
+    let fechaHeaderCorta = '';
+    if (partesFecha.length === 3) {
+      fechaHeaderCorta = `${partesFecha[1]}/${partesFecha[2]}`;
+    } else {
+      const hoy = new Date();
+      fechaHeaderCorta = `${String(hoy.getMonth() + 1).padStart(2, '0')}/${String(hoy.getDate()).padStart(2, '0')}`;
+    }
 
     const url = vistaReporte 
-      ? `${API_BASE}/reporte_mensual.php?seccion=${secParam}&asignatura=${asigParam}&periodo=${periodoParam}&fecha=${fechaHoyISO}`
-      : `${API_BASE}/asistencia.php?seccion=${secParam}&asignatura=${asigParam}&periodo=${periodoParam}&fecha=${fechaHoyISO}`;
+      ? `${API_BASE}/reporte_mensual.php?seccion=${secParam}&asignatura=${asigParam}&periodo=${periodoParam}&fecha=${fechaTarget}`
+      : `${API_BASE}/asistencia.php?seccion=${secParam}&asignatura=${asigParam}&periodo=${periodoParam}&fecha=${fechaTarget}`;
 
     fetch(url)
       .then((res) => {
@@ -99,7 +109,7 @@ const TablaAsistencia = ({ docenteId = 1 }) => {
           if (vistaReporte) {
             setAlumnos(data.reporte || []);
           } else {
-            const listaAlumnos = data.alumnos || data.data || [];
+            const listaAlumnos = data.alumnos || data.estudiantes || [];
             setAlumnos(listaAlumnos);
 
             const mapaAsistencias = {};
@@ -121,8 +131,8 @@ const TablaAsistencia = ({ docenteId = 1 }) => {
   };
 
   useEffect(() => {
-    cargarDatos();
-  }, [seccionSeleccionada, asignaturaSeleccionada, periodo, vistaReporte]);
+    cargarDatos(fechaConsulta);
+  }, [seccionSeleccionada, asignaturaSeleccionada, periodo, vistaReporte, fechaConsulta]);
 
   // 4. Guardar asistencia masiva desde el modal
   const guardarAsistenciaModal = async (datosModal) => {
@@ -145,7 +155,13 @@ const TablaAsistencia = ({ docenteId = 1 }) => {
       
       if (data.success) {
         setMostrarModalPasarAsistencia(false);
-        cargarDatos();
+        // Actualizamos la fecha de consulta activa con la fecha guardada en el modal
+        if (datosModal.fecha) {
+          setFechaConsulta(datosModal.fecha);
+          cargarDatos(datosModal.fecha);
+        } else {
+          cargarDatos();
+        }
       } else {
         alert("Error al guardar: " + (data.message || "Error desconocido"));
       }
