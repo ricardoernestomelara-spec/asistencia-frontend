@@ -69,53 +69,56 @@ const TablaAsistencia = ({ docenteId = 1 }) => {
   };
 
   // 3. Cargar lista de alumnos y registros de asistencia desde PHP
- // Cargar lista de alumnos y registros de asistencia desde PHP
-const cargarDatos = () => {
-  if (!seccionSeleccionada || !asignaturaSeleccionada) return;
+  const cargarDatos = () => {
+    if (!seccionSeleccionada || !asignaturaSeleccionada) return;
 
-  const secParam = encodeURIComponent(seccionSeleccionada.trim());
-  const asigParam = encodeURIComponent(asignaturaSeleccionada.trim());
-  const periodoParam = encodeURIComponent(periodo);
-  
-  // OBTENER LA FECHA ACTUAL EN FORMATO YYYY-MM-DD
-  const fechaHoy = new Date().toISOString().split('T')[0];
+    const secParam = encodeURIComponent(seccionSeleccionada.trim());
+    const asigParam = encodeURIComponent(asignaturaSeleccionada.trim());
+    const periodoParam = encodeURIComponent(periodo);
+    
+    // Obtener fecha actual en formato local YYYY-MM-DD sin desfase de zona horaria
+    const hoy = new Date();
+    const year = hoy.getFullYear();
+    const month = String(hoy.getMonth() + 1).padStart(2, '0');
+    const day = String(hoy.getDate()).padStart(2, '0');
+    
+    const fechaHoyISO = `${year}-${month}-${day}`; // "2026-09-19"
+    const fechaHeaderCorta = `${month}/${day}`;    // "09/19"
 
-  // INCLUIR &fecha= EN LA URL
-  const url = vistaReporte 
-    ? `${API_BASE}/reporte_mensual.php?seccion=${secParam}&asignatura=${asigParam}&periodo=${periodoParam}&fecha=${fechaHoy}`
-    : `${API_BASE}/asistencia.php?seccion=${secParam}&asignatura=${asigParam}&periodo=${periodoParam}&fecha=${fechaHoy}`;
+    const url = vistaReporte 
+      ? `${API_BASE}/reporte_mensual.php?seccion=${secParam}&asignatura=${asigParam}&periodo=${periodoParam}&fecha=${fechaHoyISO}`
+      : `${API_BASE}/asistencia.php?seccion=${secParam}&asignatura=${asigParam}&periodo=${periodoParam}&fecha=${fechaHoyISO}`;
 
-  fetch(url)
-    .then((res) => {
-      if (!res.ok) throw new Error("Error en la respuesta del servidor");
-      return res.json();
-    })
-    .then((data) => {
-      if (data.success) {
-        if (vistaReporte) {
-          setAlumnos(data.reporte || []);
-        } else {
-          // Extraer los alumnos retornados por el backend
-          const listaAlumnos = data.alumnos || data.data || [];
-          setAlumnos(listaAlumnos);
+    fetch(url)
+      .then((res) => {
+        if (!res.ok) throw new Error("Error en la respuesta del servidor");
+        return res.json();
+      })
+      .then((data) => {
+        if (data.success) {
+          if (vistaReporte) {
+            setAlumnos(data.reporte || []);
+          } else {
+            const listaAlumnos = data.alumnos || data.data || [];
+            setAlumnos(listaAlumnos);
 
-          // Mapear la asistencia individual que devuelve tu PHP
-          const mapaAsistencias = {};
-          const fechaHeaderCorta = fechaHoy.substring(5).replace('-', '/'); // "09/19"
-          
-          listaAlumnos.forEach(alumno => {
-            if (alumno.asistencia && alumno.asistencia !== '--') {
-              mapaAsistencias[`${alumno.id}-${fechaHeaderCorta}`] = alumno.asistencia;
-            }
-          });
+            const mapaAsistencias = {};
+            
+            listaAlumnos.forEach(alumno => {
+              // Reconocer 'asistencia' o 'estado' del backend
+              const estado = alumno.asistencia || alumno.estado;
+              if (estado && estado !== '--') {
+                mapaAsistencias[`${alumno.id}-${fechaHeaderCorta}`] = estado;
+              }
+            });
 
-          setFechasHeader([fechaHeaderCorta]);
-          setAsistenciasGuardadas(mapaAsistencias);
+            setFechasHeader([fechaHeaderCorta]);
+            setAsistenciasGuardadas(mapaAsistencias);
+          }
         }
-      }
-    })
-    .catch((err) => console.error("Error al obtener datos:", err));
-};
+      })
+      .catch((err) => console.error("Error al obtener datos:", err));
+  };
 
   useEffect(() => {
     cargarDatos();
@@ -164,7 +167,6 @@ const cargarDatos = () => {
     const anoActual = new Date().getFullYear();
     const partes = fechaCorta.split('/');
     
-    // Validar que la fecha corta tenga formato MM/DD o DD/MM correcto
     if (partes.length !== 2) return;
     
     const [mm, dd] = partes;
