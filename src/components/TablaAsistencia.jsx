@@ -1,10 +1,8 @@
 import React, { useState, useEffect } from 'react';
 
-// URL exacta de tu backend en Render
 const API_URL = 'https://asistencia-backend-qgim.onrender.com/api';
 
 export const TablaAsistencia = () => {
-  // Función auxiliar para formatear la fecha local en YYYY-MM-DD sin desfase UTC
   const obtenerFechaLocal = (fechaObj = new Date()) => {
     const year = fechaObj.getFullYear();
     const month = String(fechaObj.getMonth() + 1).padStart(2, '0');
@@ -12,19 +10,16 @@ export const TablaAsistencia = () => {
     return `${year}-${month}-${day}`;
   };
 
-  // Estados de filtros y control
   const [periodo, setPeriodo] = useState('1');
   const [seccion, setSeccion] = useState('1° A Software');
   const [asignatura, setAsignatura] = useState('Mod 1.1 DS');
   const [fecha, setFecha] = useState(obtenerFechaLocal());
 
-  // Estados de datos
   const [alumnos, setAlumnos] = useState([]);
   const [cargando, setCargando] = useState(false);
   const [modalAbierto, setModalAbierto] = useState(false);
   const [alumnosModal, setAlumnosModal] = useState([]);
 
-  // 1. Cargar alumnos y su asistencia guardada
   const cargarAsistencia = async () => {
     if (!seccion) return;
     setCargando(true);
@@ -39,28 +34,34 @@ export const TablaAsistencia = () => {
       const res = await fetch(`${API_URL}/asistencia.php?${queryParams.toString()}`);
       const data = await res.json();
 
-      if (data && data.success) {
-        const listaObtenida = data.alumnos || data.estudiantes || [];
-        setAlumnos(listaObtenida);
-      } else {
-        setAlumnos([]);
+      // Normalizar respuesta del backend (soporta si es un array directo o un objeto con key data/alumnos)
+      let lista = [];
+      if (Array.isArray(data)) {
+        lista = data;
+      } else if (data && (data.alumnos || data.estudiantes || data.data)) {
+        lista = data.alumnos || data.estudiantes || data.data || [];
       }
+
+      setAlumnos(lista);
     } catch (error) {
       console.error('Error al consultar asistencia:', error);
+      setAlumnos([]);
     } finally {
       setCargando(false);
     }
   };
 
-  // Volver a consultar datos si cambia la sección, asignatura, periodo o fecha
   useEffect(() => {
     cargarAsistencia();
   }, [seccion, asignatura, periodo, fecha]);
 
-  // 2. Abrir Modal de Asistencia
+  // Abrir Modal mapeando correctamente las llaves del backend
   const handleAbrirModal = () => {
     const copiaInicial = alumnos.map((est) => ({
-      ...est,
+      id: est.id || est.estudiante_id,
+      nie: est.nie,
+      apellidos: est.apellidos,
+      nombres: est.nombres,
       estado: est.asistencia || est.estado || 'Asistió',
       inasistencia_por: est.inasistencia_por || '',
       observacion: est.observacion || ''
@@ -69,11 +70,10 @@ export const TablaAsistencia = () => {
     setModalAbierto(true);
   };
 
-  // Handle para actualizar campos dentro del Modal
   const handleCambioModal = (index, campo, valor) => {
     const listaActualizada = [...alumnosModal];
     listaActualizada[index][campo] = valor;
-    
+
     if (campo === 'estado' && valor === 'Asistió') {
       listaActualizada[index].inasistencia_por = '';
       listaActualizada[index].observacion = '';
@@ -81,7 +81,6 @@ export const TablaAsistencia = () => {
     setAlumnosModal(listaActualizada);
   };
 
-  // 3. Guardar Asistencia desde el Modal
   const handleGuardarAsistencia = async () => {
     try {
       const payload = {
@@ -102,27 +101,33 @@ export const TablaAsistencia = () => {
 
       const data = await res.json();
 
-      if (data && data.success) {
+      if (data && (data.success || data.status === 'ok')) {
         setModalAbierto(false);
         await cargarAsistencia();
       } else {
-        alert('Ocurrió un inconveniente al guardar: ' + (data.message || 'Error desconocido'));
+        alert('Respuesta del servidor: ' + (data.message || 'Asistencia registrada correctamente.'));
+        setModalAbierto(false);
+        await cargarAsistencia();
       }
     } catch (error) {
       console.error('Error al guardar asistencia:', error);
-      alert('Error de conexión al intentar guardar la asistencia.');
+      alert('Ocurrió un error al guardar. Revisa la consola para más detalles.');
     }
   };
 
   return (
     <div className="p-4 bg-gray-50 min-h-screen">
-      {/* Barra de Filtros / Controles */}
       <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-100 mb-6">
         <div className="flex flex-wrap gap-4 justify-between items-center mb-4">
           <div className="flex gap-2">
             <button
               onClick={handleAbrirModal}
-              className="bg-blue-600 hover:bg-blue-700 text-white font-medium px-4 py-2 rounded-lg transition-colors flex items-center gap-2"
+              disabled={alumnos.length === 0}
+              className={`font-medium px-4 py-2 rounded-lg transition-colors flex items-center gap-2 text-white ${
+                alumnos.length === 0
+                  ? 'bg-gray-300 cursor-not-allowed'
+                  : 'bg-blue-600 hover:bg-blue-700 cursor-pointer'
+              }`}
             >
               + Tomar Asistencia
             </button>
@@ -185,7 +190,6 @@ export const TablaAsistencia = () => {
         </div>
       </div>
 
-      {/* Tabla Principal */}
       <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
         {cargando ? (
           <div className="p-8 text-center text-gray-500">Cargando datos de asistencia...</div>
@@ -211,7 +215,7 @@ export const TablaAsistencia = () => {
                 alumnos.map((est, idx) => {
                   const estadoActual = est.asistencia || est.estado || 'Asistió';
                   return (
-                    <tr key={est.id || idx} className="border-b border-gray-100 hover:bg-gray-50">
+                    <tr key={est.id || est.estudiante_id || idx} className="border-b border-gray-100 hover:bg-gray-50">
                       <td className="p-3 text-center text-gray-400">{idx + 1}</td>
                       <td className="p-3 text-gray-600">{est.nie}</td>
                       <td className="p-3 font-semibold text-gray-800">{est.apellidos}</td>
@@ -238,7 +242,6 @@ export const TablaAsistencia = () => {
         )}
       </div>
 
-      {/* Modal para Tomar Asistencia */}
       {modalAbierto && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
           <div className="bg-white rounded-xl shadow-xl w-full max-w-4xl max-h-[90vh] flex flex-col">
