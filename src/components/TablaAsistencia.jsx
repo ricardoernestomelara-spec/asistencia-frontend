@@ -1,415 +1,343 @@
 import React, { useState, useEffect } from 'react';
-import ModalAsistencia from './ModalAsistencia';
+import axios from 'axios';
 
-const API_BASE = import.meta.env.VITE_API_URL || 'https://asistencia-backend-qgim.onrender.com/api';
+// URL base de la API PHP en tu servidor backend
+const API_URL = 'https://tu-servidor-backend.com/api'; // <--- Ajusta esta URL a tu backend real
 
-const TablaAsistencia = ({ docenteId = 1 }) => {
-  const [alumnos, setAlumnos] = useState([]);
-  const [cargas, setCargas] = useState([]);
-  
-  // Listas filtradas para los desplegables
-  const [seccionesDisponibles, setSeccionesDisponibles] = useState([]);
-  const [asignaturasDisponibles, setAsignaturasDisponibles] = useState([]);
-
-  const [seccionSeleccionada, setSeccionSeleccionada] = useState('');
-  const [asignaturaSeleccionada, setAsignaturaSeleccionada] = useState('');
-  const [periodo, setPeriodo] = useState('1');
-  
-  // Estado para controlar la fecha activa de consulta (Por defecto hoy: YYYY-MM-DD)
-  const [fechaConsulta, setFechaConsulta] = useState(() => {
-    const hoy = new Date();
-    const year = hoy.getFullYear();
-    const month = String(hoy.getMonth() + 1).padStart(2, '0');
-    const day = String(hoy.getDate()).padStart(2, '0');
+export const TablaAsistencia = () => {
+  // Función auxiliar para formatear la fecha local en YYYY-MM-DD sin desfase UTC
+  const obtenerFechaLocal = (fechaObj = new Date()) => {
+    const year = fechaObj.getFullYear();
+    const month = String(fechaObj.getMonth() + 1).padStart(2, '0');
+    const day = String(fechaObj.getDate()).padStart(2, '0');
     return `${year}-${month}-${day}`;
-  });
-
-  const [vistaReporte, setVistaReporte] = useState(false);
-  const [mostrarModalPasarAsistencia, setMostrarModalPasarAsistencia] = useState(false);
-  
-  // Encabezado dinámico de fechas
-  const [fechasHeader, setFechasHeader] = useState([]);
-  const [asistenciasGuardadas, setAsistenciasGuardadas] = useState({});
-
-  // 1. Cargar carga académica del docente
-  useEffect(() => {
-    if (!docenteId) return;
-
-    fetch(`${API_BASE}/carga_academica.php?docente_id=${docenteId}`)
-      .then((res) => res.json())
-      .then((data) => {
-        if (data.success && data.carga && data.carga.length > 0) {
-          setCargas(data.carga);
-
-          // Extraer secciones únicas
-          const secs = [...new Set(data.carga.map((item) => item.seccion))];
-          setSeccionesDisponibles(secs);
-
-          const primeraSeccion = secs[0];
-          setSeccionSeleccionada(primeraSeccion);
-
-          // Filtrar asignaturas pertenecientes a la primera sección
-          const asigs = data.carga
-            .filter((item) => item.seccion === primeraSeccion)
-            .map((item) => item.asignatura);
-
-          setAsignaturasDisponibles(asigs);
-          setAsignaturaSeleccionada(asigs[0] || '');
-        } else {
-          setCargas([]);
-          setSeccionesDisponibles([]);
-          setAsignaturasDisponibles([]);
-        }
-      })
-      .catch((err) => console.error("Error al cargar la carga académica:", err));
-  }, [docenteId]);
-
-  // 2. Manejar cambio de sección para actualizar asignaturas
-  const handleCambioSeccion = (e) => {
-    const nuevaSeccion = e.target.value;
-    setSeccionSeleccionada(nuevaSeccion);
-
-    const asigs = cargas
-      .filter((item) => item.seccion === nuevaSeccion)
-      .map((item) => item.asignatura);
-
-    setAsignaturasDisponibles(asigs);
-    setAsignaturaSeleccionada(asigs[0] || '');
   };
 
-  // 3. Cargar lista de alumnos y registros de asistencia desde PHP
-  const cargarDatos = (fechaTarget = fechaConsulta) => {
-    if (!seccionSeleccionada || !asignaturaSeleccionada) return;
+  // Estados de filtros y control
+  const [periodo, setPeriodo] = useState('1');
+  const [seccion, setSeccion] = useState('1° A Software');
+  const [asignatura, setAsignatura] = useState('Mod 1.1 DS');
+  const [fecha, setFecha] = useState(obtenerFechaLocal());
 
-    const secParam = encodeURIComponent(seccionSeleccionada.trim());
-    const asigParam = encodeURIComponent(asignaturaSeleccionada.trim());
-    const periodoParam = encodeURIComponent(periodo);
-    
-    // Obtener formato corto para el encabezado (MM/DD) a partir de fechaTarget (YYYY-MM-DD)
-    const partesFecha = fechaTarget.split('-');
-    let fechaHeaderCorta = '';
-    if (partesFecha.length === 3) {
-      fechaHeaderCorta = `${partesFecha[1]}/${partesFecha[2]}`;
-    } else {
-      const hoy = new Date();
-      fechaHeaderCorta = `${String(hoy.getMonth() + 1).padStart(2, '0')}/${String(hoy.getDate()).padStart(2, '0')}`;
-    }
+  // Estados de datos
+  const [alumnos, setAlumnos] = useState([]);
+  const [cargando, setCargando] = useState(false);
+  const [modalAbierto, setModalAbierto] = useState(false);
+  const [alumnosModal, setAlumnosModal] = useState([]);
 
-    const url = vistaReporte 
-      ? `${API_BASE}/reporte_mensual.php?seccion=${secParam}&asignatura=${asigParam}&periodo=${periodoParam}&fecha=${fechaTarget}`
-      : `${API_BASE}/asistencia.php?seccion=${secParam}&asignatura=${asigParam}&periodo=${periodoParam}&fecha=${fechaTarget}`;
-
-    fetch(url)
-      .then((res) => {
-        if (!res.ok) throw new Error("Error en la respuesta del servidor");
-        return res.json();
-      })
-      .then((data) => {
-        if (data.success) {
-          if (vistaReporte) {
-            setAlumnos(data.reporte || []);
-          } else {
-            const listaAlumnos = data.alumnos || data.estudiantes || [];
-            setAlumnos(listaAlumnos);
-
-            const mapaAsistencias = {};
-            
-            listaAlumnos.forEach(alumno => {
-              // Mapeo unificado considerando id o estudiante_id
-              const alumnoId = alumno.id || alumno.estudiante_id;
-              const estado = alumno.asistencia || alumno.estado;
-              if (alumnoId && estado && estado !== '--') {
-                mapaAsistencias[`${alumnoId}-${fechaHeaderCorta}`] = estado;
-              }
-            });
-
-            setFechasHeader([fechaHeaderCorta]);
-            setAsistenciasGuardadas(mapaAsistencias);
-          }
-        }
-      })
-      .catch((err) => console.error("Error al obtener datos:", err));
-  };
-
-  useEffect(() => {
-    cargarDatos(fechaConsulta);
-  }, [seccionSeleccionada, asignaturaSeleccionada, periodo, vistaReporte, fechaConsulta]);
-
-  // 4. Guardar asistencia masiva desde el modal y actualizar la fecha activa
-  const guardarAsistenciaModal = async (datosModal) => {
-    // Si el modal devuelve una fecha la usamos, de lo contrario usamos la actual de fechaConsulta
-    const fechaSeleccionada = datosModal.fecha || fechaConsulta;
-
-    const payload = {
-      fecha: fechaSeleccionada,
-      seccion: seccionSeleccionada,
-      asignatura: asignaturaSeleccionada,
-      periodo: periodo,
-      detalles: datosModal.detalles || datosModal.asistencia || datosModal
-    };
-
+  // 1. Cargar alumnos y su asistencia guardada
+  const cargarAsistencia = async () => {
+    if (!seccion) return;
+    setCargando(true);
     try {
-      const res = await fetch(`${API_BASE}/guardar_asistencia.php`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
+      // Se envía explícitamente el parámetro fecha formateado YYYY-MM-DD
+      const res = await axios.get(`${API_URL}/asistencia.php`, {
+        params: {
+          seccion: seccion,
+          asignatura: asignatura,
+          periodo: periodo,
+          fecha: fecha
+        }
       });
-      
-      const data = await res.json();
-      
-      if (data.success) {
-        setMostrarModalPasarAsistencia(false);
-        // Sincronizar fecha activa de la vista principal con la elegida en el modal
-        setFechaConsulta(fechaSeleccionada);
-        cargarDatos(fechaSeleccionada);
+
+      if (res.data && res.data.success) {
+        const listaObtenida = res.data.alumnos || res.data.estudiantes || [];
+        setAlumnos(listaObtenida);
       } else {
-        alert("Error al guardar: " + (data.message || "Error desconocido"));
+        setAlumnos([]);
       }
-    } catch (err) {
-      console.error("Error al guardar asistencia:", err);
-      alert("Ocurrió un error de red al guardar los datos.");
+    } catch (error) {
+      console.error('Error al consultar asistencia:', error);
+    } finally {
+      setCargando(false);
     }
   };
 
-  // 5. Actualizar celda individual dinámicamente
-  const actualizarAsistenciaIndividual = (alumnoId, fechaCorta, nuevoEstado) => {
-    if (!fechaCorta || fechaCorta === '00/00') return;
+  // Volver a consultar datos si cambia la sección, asignatura, periodo o fecha
+  useEffect(() => {
+    cargarAsistencia();
+  }, [seccion, asignatura, periodo, fecha]);
 
-    const clave = `${alumnoId}-${fechaCorta}`;
+  // 2. Abrir Modal de Asistencia
+  const handleAbrirModal = () => {
+    // Clonar lista actual para no mutar directamente la vista previa
+    const copiaInicial = alumnos.map((est) => ({
+      ...est,
+      estado: est.asistencia || est.estado || 'Asistió',
+      inasistencia_por: est.inasistencia_por || '',
+      observacion: est.observacion || ''
+    }));
+    setAlumnosModal(copiaInicial);
+    setModalAbierto(true);
+  };
+
+  // Handle para actualizar campos dentro del Modal
+  const handleCambioModal = (index, campo, valor) => {
+    const listaActualizada = [...alumnosModal];
+    listaActualizada[index][campo] = valor;
     
-    // Actualización inmediata en la interfaz
-    setAsistenciasGuardadas(prev => ({ ...prev, [clave]: nuevoEstado }));
-
-    let fechaCompleta = fechaConsulta;
-    const partes = fechaCorta.split('/');
-    if (partes.length === 2) {
-      const [mm, dd] = partes;
-      const anoActual = new Date().getFullYear();
-      fechaCompleta = `${anoActual}-${mm.padStart(2, '0')}-${dd.padStart(2, '0')}`;
+    // Si cambia a "Asistió", limpiar campos de inasistencia
+    if (campo === 'estado' && valor === 'Asistió') {
+      listaActualizada[index].inasistencia_por = '';
+      listaActualizada[index].observacion = '';
     }
-
-    const payload = {
-      fecha: fechaCompleta,
-      seccion: seccionSeleccionada,
-      asignatura: asignaturaSeleccionada,
-      periodo: periodo,
-      detalles: [{ estudiante_id: alumnoId, id: alumnoId, estado: nuevoEstado }]
-    };
-
-    fetch(`${API_BASE}/guardar_asistencia.php`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload)
-    })
-    .then(res => res.json())
-    .then(data => {
-      if (data.success) {
-        cargarDatos(fechaCompleta);
-      } else {
-        console.error("Error al guardar celda individual:", data.message);
-      }
-    })
-    .catch(err => console.error("Error al actualizar la celda:", err));
+    setAlumnosModal(listaActualizada);
   };
 
-  // Selector visual con colores distintivos por estado
-  const renderBadgeSelector = (alumnoId, fechaCorta, estadoActual) => {
-    let style = { bg: '#dcfce7', color: '#15803d', border: '#bbf7d0' }; // Asistió (Verde)
+  // 3. Guardar Asistencia desde el Modal
+  const handleGuardarAsistencia = async () => {
+    try {
+      const payload = {
+        fecha: fecha, // Envía la fecha seleccionada local (ej: 2026-09-19)
+        seccion: seccion,
+        asignatura: asignatura,
+        periodo: periodo,
+        detalles: alumnosModal
+      };
 
-    if (estadoActual === 'Faltó' || estadoActual === 'A') {
-      style = { bg: '#fee2e2', color: '#b91c1c', border: '#fca5a5' }; // Faltó (Rojo)
-    } else if (estadoActual === 'Permiso' || estadoActual === 'J') {
-      style = { bg: '#fef3c7', color: '#b45309', border: '#fde68a' }; // Permiso (Naranja)
-    } else if (estadoActual === 'Incapacidad') {
-      style = { bg: '#f3e8ff', color: '#6b21a8', border: '#e9d5ff' }; // Incapacidad (Morado)
-    } else if (estadoActual === 'Tardía' || estadoActual === 'L') {
-      style = { bg: '#e0f2fe', color: '#0369a1', border: '#bae6fd' }; // Tardía (Azul Claro)
-    } else if (estadoActual === 'Retirado') {
-      style = { bg: '#e2e8f0', color: '#334155', border: '#cbd5e1' }; // Retirado (Gris)
+      const res = await axios.post(`${API_URL}/guardar_asistencia.php`, payload);
+
+      if (res.data && res.data.success) {
+        setModalAbierto(false);
+        // Volver a consultar inmediatamente para reflejar cambios en la tabla
+        await cargarAsistencia();
+      } else {
+        alert('Ocurrió un inconveniente al guardar: ' + (res.data.message || 'Error desconocido'));
+      }
+    } catch (error) {
+      console.error('Error al guardar asistencia:', error);
+      alert('Error de conexión al intentar guardar la asistencia.');
     }
-
-    return (
-      <select
-        value={estadoActual || 'Asistió'}
-        onChange={(e) => actualizarAsistenciaIndividual(alumnoId, fechaCorta, e.target.value)}
-        style={{
-          backgroundColor: style.bg,
-          color: style.color,
-          border: `1px solid ${style.border}`,
-          padding: '4px 8px',
-          borderRadius: '20px',
-          fontWeight: '700',
-          fontSize: '12px',
-          cursor: 'pointer',
-          outline: 'none',
-          boxShadow: '0 1px 2px rgba(0,0,0,0.05)'
-        }}
-      >
-        <option value="Asistió" style={{ backgroundColor: '#fff', color: '#15803d' }}>Asistió</option>
-        <option value="Faltó" style={{ backgroundColor: '#fff', color: '#b91c1c' }}>Faltó</option>
-        <option value="Permiso" style={{ backgroundColor: '#fff', color: '#b45309' }}>Permiso</option>
-        <option value="Incapacidad" style={{ backgroundColor: '#fff', color: '#6b21a8' }}>Incapacidad</option>
-        <option value="Tardía" style={{ backgroundColor: '#fff', color: '#0369a1' }}>Tardía</option>
-        <option value="Retirado" style={{ backgroundColor: '#fff', color: '#334155' }}>Retirado</option>
-      </select>
-    );
   };
 
   return (
-    <div style={{ padding: '24px', backgroundColor: '#f8fafc', minHeight: '100vh', fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif' }}>
-      <div style={{ backgroundColor: '#ffffff', borderRadius: '12px', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)', padding: '24px', border: '1px solid #e2e8f0' }}>
-        
-        <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'center', gap: '16px', marginBottom: '24px', borderBottom: '1px solid #f1f5f9', paddingBottom: '16px' }}>
-          <div style={{ display: 'flex', gap: '12px' }}>
-            <button 
-              onClick={() => setMostrarModalPasarAsistencia(true)}
-              style={{ display: 'flex', alignItems: 'center', gap: '8px', backgroundColor: '#2563eb', color: '#ffffff', border: 'none', padding: '10px 18px', borderRadius: '8px', cursor: 'pointer', fontWeight: '600', fontSize: '14px', boxShadow: '0 2px 4px rgba(37,99,235,0.2)' }}
+    <div className="p-4 bg-gray-50 min-h-screen">
+      {/* Barra de Filtros / Controles */}
+      <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-100 mb-6">
+        <div className="flex flex-wrap gap-4 justify-between items-center mb-4">
+          <div className="flex gap-2">
+            <button
+              onClick={handleAbrirModal}
+              className="bg-blue-600 hover:bg-blue-700 text-white font-medium px-4 py-2 rounded-lg transition-colors flex items-center gap-2"
             >
-              <span>+</span> Tomar Asistencia
-            </button>
-            
-            <button 
-              onClick={() => setVistaReporte(!vistaReporte)}
-              style={{ backgroundColor: vistaReporte ? '#f1f5f9' : '#ffffff', color: '#334155', border: '1px solid #cbd5e1', padding: '10px 18px', borderRadius: '8px', cursor: 'pointer', fontWeight: '600', fontSize: '14px' }}
-            >
-              {vistaReporte ? '📊 Ver Vista Diaria' : '📈 Reporte Mensual'}
+              + Tomar Asistencia
             </button>
           </div>
 
-          <div style={{ display: 'flex', gap: '16px', alignItems: 'center' }}>
-            
-            {/* Selector de Período */}
-            <div>
-              <label style={{ fontSize: '12px', fontWeight: '700', color: '#64748b', textTransform: 'uppercase', display: 'block', marginBottom: '4px' }}>Período</label>
-              <select 
-                value={periodo} 
-                onChange={(e) => setPeriodo(e.target.value)} 
-                style={{ padding: '8px 12px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '14px', backgroundColor: '#fff', color: '#1e293b' }}
-              >
-                <option value="1">1° Período</option>
-                <option value="2">2° Período</option>
-                <option value="3">3° Período</option>
-                <option value="4">4° Período</option>
-              </select>
-            </div>
-
-            {/* Selector de Sección */}
-            <div>
-              <label style={{ fontSize: '12px', fontWeight: '700', color: '#64748b', textTransform: 'uppercase', display: 'block', marginBottom: '4px' }}>Sección</label>
-              <select 
-                value={seccionSeleccionada} 
-                onChange={handleCambioSeccion} 
-                style={{ padding: '8px 12px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '14px', backgroundColor: '#fff', color: '#1e293b' }}
-              >
-                {seccionesDisponibles.map((sec, i) => (
-                  <option key={i} value={sec}>{sec}</option>
-                ))}
-              </select>
-            </div>
-
-            {/* Selector de Asignatura */}
-            <div>
-              <label style={{ fontSize: '12px', fontWeight: '700', color: '#64748b', textTransform: 'uppercase', display: 'block', marginBottom: '4px' }}>Asignatura</label>
-              <select 
-                value={asignaturaSeleccionada} 
-                onChange={(e) => setAsignaturaSeleccionada(e.target.value)} 
-                style={{ padding: '8px 12px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '14px', backgroundColor: '#fff', color: '#1e293b', minWidth: '180px' }}
-              >
-                {asignaturasDisponibles.map((asig, i) => (
-                  <option key={i} value={asig}>{asig}</option>
-                ))}
-              </select>
-            </div>
+          <div className="flex items-center gap-2">
+            <label className="text-sm font-medium text-gray-700">Fecha:</label>
+            <input
+              type="date"
+              value={fecha}
+              onChange={(e) => setFecha(e.target.value)}
+              className="border border-gray-300 rounded-lg px-3 py-1.5 text-sm outline-none focus:border-blue-500"
+            />
           </div>
         </div>
 
-        <div style={{ overflowX: 'auto', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
-          {!vistaReporte ? (
-            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '14px' }}>
-              <thead>
-                <tr style={{ backgroundColor: '#f8fafc', borderBottom: '2px solid #e2e8f0', color: '#475569', textTransform: 'uppercase', fontSize: '12px', letterSpacing: '0.05em' }}>
-                  <th style={{ padding: '14px 16px', textAlign: 'left', width: '50px' }}>#</th>
-                  <th style={{ padding: '14px 16px', textAlign: 'left' }}>NIE</th>
-                  <th style={{ padding: '14px 16px', textAlign: 'left' }}>Apellidos</th>
-                  <th style={{ padding: '14px 16px', textAlign: 'left' }}>Nombres</th>
-                  {fechasHeader.length === 0 ? (
-                    <th style={{ padding: '14px 16px', textAlign: 'center', color: '#94a3b8' }}>Sin Registros</th>
-                  ) : (
-                    fechasHeader.map((f, i) => (
-                      <th key={i} style={{ padding: '14px 16px', textAlign: 'center', backgroundColor: '#f1f5f9', borderLeft: '1px solid #e2e8f0' }}>{f}</th>
-                    ))
-                  )}
-                </tr>
-              </thead>
-              <tbody>
-                {alumnos.length === 0 ? (
-                  <tr>
-                    <td colSpan={4 + (fechasHeader.length || 1)} style={{ padding: '20px', textAlign: 'center', color: '#64748b' }}>
-                      No hay alumnos o datos cargados para este filtro.
-                    </td>
-                  </tr>
-                ) : (
-                  alumnos.map((alumno, index) => {
-                    const alumnoId = alumno.id || alumno.estudiante_id;
-                    return (
-                      <tr key={alumnoId || index} style={{ borderBottom: '1px solid #f1f5f9', backgroundColor: index % 2 === 0 ? '#ffffff' : '#fafafa' }}>
-                        <td style={{ padding: '12px 16px', color: '#94a3b8', fontWeight: '600' }}>{index + 1}</td>
-                        <td style={{ padding: '12px 16px', color: '#64748b', fontFamily: 'monospace' }}>{alumno.nie}</td>
-                        <td style={{ padding: '12px 16px', fontWeight: '600', color: '#0f172a' }}>{alumno.apellidos}</td>
-                        <td style={{ padding: '12px 16px', color: '#334155' }}>{alumno.nombres}</td>
-                        {fechasHeader.length === 0 ? (
-                          <td style={{ padding: '10px 12px', textAlign: 'center', color: '#94a3b8' }}>--</td>
-                        ) : (
-                          fechasHeader.map((fecha, i) => {
-                            const estadoRegistrado = asistenciasGuardadas[`${alumnoId}-${fecha}`] || 'Asistió';
-                            return (
-                              <td key={i} style={{ padding: '10px 12px', textAlign: 'center', borderLeft: '1px solid #f1f5f9' }}>
-                                {renderBadgeSelector(alumnoId, fecha, estadoRegistrado)}
-                              </td>
-                            );
-                          })
-                        )}
-                      </tr>
-                    );
-                  })
-                )}
-              </tbody>
-            </table>
-          ) : (
-            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '14px' }}>
-              <thead>
-                <tr style={{ backgroundColor: '#f8fafc', borderBottom: '2px solid #e2e8f0', color: '#475569', textTransform: 'uppercase', fontSize: '12px' }}>
-                  <th style={{ padding: '14px 16px', textAlign: 'left' }}>#</th>
-                  <th style={{ padding: '14px 16px', textAlign: 'left' }}>NIE</th>
-                  <th style={{ padding: '14px 16px', textAlign: 'left' }}>Apellidos y Nombres</th>
-                  <th style={{ padding: '14px 16px', textAlign: 'center', color: '#16a34a' }}>Presentes</th>
-                  <th style={{ padding: '14px 16px', textAlign: 'center', color: '#dc2626' }}>Ausentes</th>
-                  <th style={{ padding: '14px 16px', textAlign: 'center', color: '#d97706' }}>Justificadas</th>
-                </tr>
-              </thead>
-              <tbody>
-                {alumnos.map((alumno, index) => (
-                  <tr key={alumno.id || index} style={{ borderBottom: '1px solid #f1f5f9' }}>
-                    <td style={{ padding: '12px 16px' }}>{index + 1}</td>
-                    <td style={{ padding: '12px 16px', fontFamily: 'monospace' }}>{alumno.nie}</td>
-                    <td style={{ padding: '12px 16px', fontWeight: '600' }}>{alumno.apellidos}, {alumno.nombres}</td>
-                    <td style={{ padding: '12px 16px', textAlign: 'center', fontWeight: '700', color: '#16a34a' }}>{alumno.presentes || 0}</td>
-                    <td style={{ padding: '12px 16px', textAlign: 'center', fontWeight: '700', color: '#dc2626' }}>{alumno.ausentes || 0}</td>
-                    <td style={{ padding: '12px 16px', textAlign: 'center', fontWeight: '700', color: '#d97706' }}>{alumno.justificadas || 0}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          )}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div>
+            <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">
+              PERÍODO
+            </label>
+            <select
+              value={periodo}
+              onChange={(e) => setPeriodo(e.target.value)}
+              className="w-full border border-gray-300 rounded-lg p-2 text-sm outline-none focus:border-blue-500"
+            >
+              <option value="1">1° Período</option>
+              <option value="2">2° Período</option>
+              <option value="3">3° Período</option>
+            </select>
+          </div>
+
+          <div>
+            <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">
+              SECCIÓN
+            </label>
+            <select
+              value={seccion}
+              onChange={(e) => setSeccion(e.target.value)}
+              className="w-full border border-gray-300 rounded-lg p-2 text-sm outline-none focus:border-blue-500"
+            >
+              <option value="1° A Software">1° A Software</option>
+              <option value="1° B Software">1° B Software</option>
+            </select>
+          </div>
+
+          <div>
+            <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">
+              ASIGNATURA
+            </label>
+            <select
+              value={asignatura}
+              onChange={(e) => setAsignatura(e.target.value)}
+              className="w-full border border-gray-300 rounded-lg p-2 text-sm outline-none focus:border-blue-500"
+            >
+              <option value="Mod 1.1 DS">Mod 1.1 DS</option>
+              <option value="Mod 1.2 BD">Mod 1.2 BD</option>
+            </select>
+          </div>
         </div>
       </div>
 
-      {mostrarModalPasarAsistencia && (
-        <ModalAsistencia
-          estudiantes={alumnos}
-          onClose={() => setMostrarModalPasarAsistencia(false)}
-          onGuardar={guardarAsistenciaModal}
-        />
+      {/* Tabla Principal */}
+      <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+        {cargando ? (
+          <div className="p-8 text-center text-gray-500">Cargando datos de asistencia...</div>
+        ) : (
+          <table className="w-full text-left border-collapse text-sm">
+            <thead>
+              <tr className="bg-gray-100 text-gray-600 border-b border-gray-200">
+                <th className="p-3 w-12 text-center">#</th>
+                <th className="p-3">NIE</th>
+                <th className="p-3">APELLIDOS</th>
+                <th className="p-3">NOMBRES</th>
+                <th className="p-3 text-center">{fecha.split('-').reverse().slice(0, 2).join('/')}</th>
+              </tr>
+            </thead>
+            <tbody>
+              {alumnos.length === 0 ? (
+                <tr>
+                  <td colSpan="5" className="p-6 text-center text-gray-400">
+                    No se encontraron registros para esta selección.
+                  </td>
+                </tr>
+              ) : (
+                alumnos.map((est, idx) => {
+                  const estadoActual = est.asistencia || est.estado || 'Asistió';
+                  return (
+                    <tr key={est.id || idx} className="border-b border-gray-100 hover:bg-gray-50">
+                      <td className="p-3 text-center text-gray-400">{idx + 1}</td>
+                      <td className="p-3 text-gray-600">{est.nie}</td>
+                      <td className="p-3 font-semibold text-gray-800">{est.apellidos}</td>
+                      <td className="p-3 text-gray-700">{est.nombres}</td>
+                      <td className="p-3 text-center">
+                        <span
+                          className={`inline-block px-3 py-1 rounded-full text-xs font-semibold ${
+                            estadoActual === 'Faltó'
+                              ? 'bg-red-100 text-red-700'
+                              : estadoActual === 'Permiso'
+                              ? 'bg-yellow-100 text-yellow-700'
+                              : 'bg-green-100 text-green-700'
+                          }`}
+                        >
+                          {estadoActual}
+                        </span>
+                      </td>
+                    </tr>
+                  );
+                })
+              )}
+            </tbody>
+          </table>
+        )}
+      </div>
+
+      {/* Modal para Tomar Asistencia */}
+      {modalAbierto && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-xl shadow-xl w-full max-w-4xl max-h-[90vh] flex flex-col">
+            <div className="p-4 border-b border-gray-200 flex justify-between items-center">
+              <h2 className="text-lg font-bold text-gray-800">Asistencia diaria</h2>
+              <button
+                onClick={() => setModalAbierto(false)}
+                className="text-gray-400 hover:text-gray-600 font-bold text-xl"
+              >
+                &times;
+              </button>
+            </div>
+
+            <div className="p-4 border-b border-gray-100 bg-gray-50 flex items-center gap-4">
+              <span className="text-sm font-semibold text-gray-700">Fecha:</span>
+              <input
+                type="date"
+                value={fecha}
+                onChange={(e) => setFecha(e.target.value)}
+                className="border border-gray-300 rounded px-2 py-1 text-sm bg-white"
+              />
+            </div>
+
+            <div className="p-4 overflow-y-auto flex-1">
+              <table className="w-full text-left text-sm border-collapse">
+                <thead>
+                  <tr className="bg-blue-600 text-white">
+                    <th className="p-2.5 text-center w-10">#</th>
+                    <th className="p-2.5">NIE</th>
+                    <th className="p-2.5">APELLIDOS</th>
+                    <th className="p-2.5">NOMBRES</th>
+                    <th className="p-2.5">ESTADO</th>
+                    <th className="p-2.5">INASISTENCIA POR</th>
+                    <th className="p-2.5">OBSERVACIÓN</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {alumnosModal.map((est, idx) => (
+                    <tr key={est.id || idx} className="border-b border-gray-200">
+                      <td className="p-2 text-center text-gray-500">{idx + 1}</td>
+                      <td className="p-2 text-xs text-gray-600">{est.nie}</td>
+                      <td className="p-2 font-medium text-gray-800">{est.apellidos}</td>
+                      <td className="p-2 text-gray-700">{est.nombres}</td>
+                      <td className="p-2">
+                        <select
+                          value={est.estado}
+                          onChange={(e) => handleCambioModal(idx, 'estado', e.target.value)}
+                          className="border border-gray-300 rounded px-2 py-1 text-sm outline-none"
+                        >
+                          <option value="Asistió">Asistió</option>
+                          <option value="Faltó">Faltó</option>
+                          <option value="Permiso">Permiso</option>
+                        </select>
+                      </td>
+                      <td className="p-2">
+                        <select
+                          disabled={est.estado === 'Asistió'}
+                          value={est.inasistencia_por}
+                          onChange={(e) =>
+                            handleCambioModal(idx, 'inasistencia_por', e.target.value)
+                          }
+                          className="border border-gray-300 rounded px-2 py-1 text-sm outline-none disabled:bg-gray-100"
+                        >
+                          <option value="">-- Seleccionar --</option>
+                          <option value="Competencia Deportiva">Competencia Deportiva</option>
+                          <option value="Enfermedad">Enfermedad</option>
+                          <option value="Motivo Personal">Motivo Personal</option>
+                        </select>
+                      </td>
+                      <td className="p-2">
+                        <input
+                          type="text"
+                          disabled={est.estado === 'Asistió'}
+                          placeholder="Escribe una observación"
+                          value={est.observacion}
+                          onChange={(e) =>
+                            handleCambioModal(idx, 'observacion', e.target.value)
+                          }
+                          className="border border-gray-300 rounded px-2 py-1 text-sm w-full outline-none disabled:bg-gray-100"
+                        />
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            <div className="p-4 border-t border-gray-200 flex justify-end gap-3 bg-gray-50">
+              <button
+                onClick={() => setModalAbierto(false)}
+                className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-100"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={handleGuardarAsistencia}
+                className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium"
+              >
+                Guardar
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );
