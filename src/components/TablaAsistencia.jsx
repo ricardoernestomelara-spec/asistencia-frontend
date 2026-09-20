@@ -17,6 +17,7 @@ export const TablaAsistencia = () => {
 
   const [alumnos, setAlumnos] = useState([]);
   const [cargando, setCargando] = useState(false);
+  const [guardando, setGuardando] = useState(false);
   const [modalAbierto, setModalAbierto] = useState(false);
   const [alumnosModal, setAlumnosModal] = useState([]);
 
@@ -56,11 +57,11 @@ export const TablaAsistencia = () => {
 
   const handleAbrirModal = () => {
     const copiaInicial = alumnos.map((est) => ({
-      id: est.id || est.estudiante_id,
+      estudiante_id: est.estudiante_id || est.id,
       nie: est.nie,
       apellidos: est.apellidos,
       nombres: est.nombres,
-      estado: est.asistencia || est.estado || 'Asistió',
+      asistencia: est.asistencia || est.estado || 'Asistió',
       inasistencia_por: est.inasistencia_por || '',
       observacion: est.observacion || ''
     }));
@@ -72,7 +73,7 @@ export const TablaAsistencia = () => {
     const listaActualizada = [...alumnosModal];
     listaActualizada[index][campo] = valor;
 
-    if (campo === 'estado' && valor === 'Asistió') {
+    if (campo === 'asistencia' && valor === 'Asistió') {
       listaActualizada[index].inasistencia_por = '';
       listaActualizada[index].observacion = '';
     }
@@ -80,13 +81,19 @@ export const TablaAsistencia = () => {
   };
 
   const handleGuardarAsistencia = async () => {
+    setGuardando(true);
     try {
       const payload = {
         fecha: fecha,
         seccion: seccion,
         asignatura: asignatura,
         periodo: periodo,
-        detalles: alumnosModal
+        asistencias: alumnosModal.map((est) => ({
+          estudiante_id: est.estudiante_id,
+          asistencia: est.asistencia,
+          inasistencia_por: est.inasistencia_por,
+          observacion: est.observacion
+        }))
       };
 
       const res = await fetch(`${API_URL}/guardar_asistencia.php`, {
@@ -99,62 +106,57 @@ export const TablaAsistencia = () => {
 
       const data = await res.json();
 
-      if (data && (data.success || data.status === 'ok')) {
+      if (data && (data.success || data.status === 'ok' || res.ok)) {
         setModalAbierto(false);
         await cargarAsistencia();
       } else {
-        alert('Respuesta del servidor: ' + (data.message || 'Asistencia registrada correctamente.'));
-        setModalAbierto(false);
-        await cargarAsistencia();
+        alert('Respuesta del servidor: ' + (data.message || 'Error al registrar la asistencia.'));
       }
     } catch (error) {
       console.error('Error al guardar asistencia:', error);
       alert('Error de conexión al intentar guardar.');
+    } finally {
+      setGuardando(false);
     }
   };
 
   return (
-    <div style={{ padding: '20px', fontFamily: 'sans-serif' }}>
-      {/* Contenedor de Filtros */}
-      <div style={{ background: '#fff', padding: '20px', borderRadius: '8px', border: '1px solid #e5e7eb', marginBottom: '20px' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px', flexWrap: 'wrap', gap: '10px' }}>
+    <div className="p-6 bg-slate-50 min-h-screen">
+      {/* Panel Superior de Filtros */}
+      <div className="bg-white p-5 rounded-xl shadow-sm border border-slate-200 mb-6">
+        <div className="flex flex-wrap justify-between items-center gap-4 mb-5">
           <button
             onClick={handleAbrirModal}
             disabled={alumnos.length === 0}
-            style={{
-              backgroundColor: alumnos.length === 0 ? '#cccccc' : '#00a8e8',
-              color: '#ffffff',
-              border: 'none',
-              padding: '10px 20px',
-              borderRadius: '20px',
-              fontWeight: 'bold',
-              cursor: alumnos.length === 0 ? 'not-allowed' : 'pointer',
-              fontSize: '14px'
-            }}
+            className={`px-5 py-2.5 rounded-full font-semibold text-sm transition-all duration-200 flex items-center gap-2 ${
+              alumnos.length === 0
+                ? 'bg-slate-200 text-slate-400 cursor-not-allowed'
+                : 'bg-sky-500 hover:bg-sky-600 text-white shadow-sm hover:shadow cursor-pointer'
+            }`}
           >
             + Tomar Asistencia
           </button>
 
-          <div style={{ display: 'flex', itemsAlign: 'center', gap: '8px' }}>
-            <label style={{ fontSize: '14px', fontWeight: 'bold' }}>Fecha:</label>
+          <div className="flex items-center gap-3">
+            <span className="text-sm font-semibold text-slate-700">Fecha:</span>
             <input
               type="date"
               value={fecha}
               onChange={(e) => setFecha(e.target.value)}
-              style={{ padding: '6px 12px', borderRadius: '4px', border: '1px solid #ccc' }}
+              className="border border-slate-300 rounded-lg px-3 py-1.5 text-sm outline-none focus:ring-2 focus:ring-sky-500 bg-white"
             />
           </div>
         </div>
 
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '15px' }}>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div>
-            <label style={{ display: 'block', fontSize: '12px', fontWeight: 'bold', color: '#666', marginBottom: '5px' }}>
+            <label className="block text-xs font-bold text-slate-500 tracking-wider uppercase mb-1.5">
               PERÍODO
             </label>
             <select
               value={periodo}
               onChange={(e) => setPeriodo(e.target.value)}
-              style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ccc' }}
+              className="w-full border border-slate-300 rounded-lg p-2.5 text-sm bg-white outline-none focus:ring-2 focus:ring-sky-500"
             >
               <option value="1">1° Período</option>
               <option value="2">2° Período</option>
@@ -163,13 +165,13 @@ export const TablaAsistencia = () => {
           </div>
 
           <div>
-            <label style={{ display: 'block', fontSize: '12px', fontWeight: 'bold', color: '#666', marginBottom: '5px' }}>
+            <label className="block text-xs font-bold text-slate-500 tracking-wider uppercase mb-1.5">
               SECCIÓN
             </label>
             <select
               value={seccion}
               onChange={(e) => setSeccion(e.target.value)}
-              style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ccc' }}
+              className="w-full border border-slate-300 rounded-lg p-2.5 text-sm bg-white outline-none focus:ring-2 focus:ring-sky-500"
             >
               <option value="1° A Software">1° A Software</option>
               <option value="1° B Software">1° B Software</option>
@@ -177,13 +179,13 @@ export const TablaAsistencia = () => {
           </div>
 
           <div>
-            <label style={{ display: 'block', fontSize: '12px', fontWeight: 'bold', color: '#666', marginBottom: '5px' }}>
+            <label className="block text-xs font-bold text-slate-500 tracking-wider uppercase mb-1.5">
               ASIGNATURA
             </label>
             <select
               value={asignatura}
               onChange={(e) => setAsignatura(e.target.value)}
-              style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ccc' }}
+              className="w-full border border-slate-300 rounded-lg p-2.5 text-sm bg-white outline-none focus:ring-2 focus:ring-sky-500"
             >
               <option value="Mod 1.1 DS">Mod 1.1 DS</option>
               <option value="Mod 1.2 BD">Mod 1.2 BD</option>
@@ -193,24 +195,24 @@ export const TablaAsistencia = () => {
       </div>
 
       {/* Tabla Principal */}
-      <div style={{ background: '#fff', borderRadius: '8px', border: '1px solid #e5e7eb', overflow: 'hidden' }}>
+      <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
         {cargando ? (
-          <div style={{ padding: '30px', textAlign: 'center', color: '#666' }}>Cargando datos de asistencia...</div>
+          <div className="p-10 text-center text-slate-500 font-medium">Cargando registros...</div>
         ) : (
-          <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '14px' }}>
+          <table className="w-full text-left border-collapse text-sm">
             <thead>
-              <tr style={{ background: '#f9fafb', borderBottom: '1px solid #e5e7eb', color: '#374151' }}>
-                <th style={{ padding: '12px', textAlign: 'center', width: '40px' }}>#</th>
-                <th style={{ padding: '12px' }}>NIE</th>
-                <th style={{ padding: '12px' }}>APELLIDOS</th>
-                <th style={{ padding: '12px' }}>NOMBRES</th>
-                <th style={{ padding: '12px', textAlign: 'center' }}>{fecha.split('-').reverse().slice(0, 2).join('/')}</th>
+              <tr className="bg-slate-50 border-b border-slate-200 text-slate-600 font-bold">
+                <th className="p-3.5 text-center w-12">#</th>
+                <th className="p-3.5">NIE</th>
+                <th className="p-3.5">APELLIDOS</th>
+                <th className="p-3.5">NOMBRES</th>
+                <th className="p-3.5 text-center">{fecha.split('-').reverse().slice(0, 2).join('/')}</th>
               </tr>
             </thead>
-            <tbody>
+            <tbody className="divide-y divide-slate-100">
               {alumnos.length === 0 ? (
                 <tr>
-                  <td colSpan="5" style={{ padding: '20px', textAlign: 'center', color: '#9ca3af' }}>
+                  <td colSpan="5" className="p-8 text-center text-slate-400">
                     No se encontraron registros para esta selección.
                   </td>
                 </tr>
@@ -218,23 +220,20 @@ export const TablaAsistencia = () => {
                 alumnos.map((est, idx) => {
                   const estadoActual = est.asistencia || est.estado || 'Asistió';
                   return (
-                    <tr key={est.id || est.estudiante_id || idx} style={{ borderBottom: '1px solid #f3f4f6' }}>
-                      <td style={{ padding: '12px', textAlign: 'center', color: '#9ca3af' }}>{idx + 1}</td>
-                      <td style={{ padding: '12px', color: '#4b5563' }}>{est.nie}</td>
-                      <td style={{ padding: '12px', fontWeight: 'bold', color: '#1f2937' }}>{est.apellidos}</td>
-                      <td style={{ padding: '12px', color: '#374151' }}>{est.nombres}</td>
-                      <td style={{ padding: '12px', textAlign: 'center' }}>
+                    <tr key={est.estudiante_id || est.id || idx} className="hover:bg-slate-50/80 transition-colors">
+                      <td className="p-3.5 text-center text-slate-400">{idx + 1}</td>
+                      <td className="p-3.5 text-slate-600">{est.nie}</td>
+                      <td className="p-3.5 font-bold text-slate-800">{est.apellidos}</td>
+                      <td className="p-3.5 text-slate-700">{est.nombres}</td>
+                      <td className="p-3.5 text-center">
                         <span
-                          style={{
-                            padding: '4px 12px',
-                            borderRadius: '12px',
-                            fontSize: '12px',
-                            fontWeight: 'bold',
-                            backgroundColor:
-                              estadoActual === 'Faltó' ? '#fee2e2' : estadoActual === 'Permiso' ? '#fef3c7' : '#d1fae5',
-                            color:
-                              estadoActual === 'Faltó' ? '#b91c1c' : estadoActual === 'Permiso' ? '#b45309' : '#047857'
-                          }}
+                          className={`inline-block px-3 py-1 rounded-full text-xs font-semibold ${
+                            estadoActual === 'Faltó'
+                              ? 'bg-red-100 text-red-700'
+                              : estadoActual === 'Permiso'
+                              ? 'bg-amber-100 text-amber-700'
+                              : 'bg-emerald-100 text-emerald-700'
+                          }`}
                         >
                           {estadoActual}
                         </span>
@@ -248,97 +247,72 @@ export const TablaAsistencia = () => {
         )}
       </div>
 
-      {/* Modal Flotante Superpuesto */}
+      {/* Modal Flotante Superpuesto con Tailwind */}
       {modalAbierto && (
-        <div
-          style={{
-            position: 'fixed',
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            backgroundColor: 'rgba(0, 0, 0, 0.5)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            zIndex: 1000,
-            padding: '20px'
-          }}
-        >
-          <div
-            style={{
-              background: '#ffffff',
-              borderRadius: '12px',
-              width: '100%',
-              maxWidth: '900px',
-              maxHeight: '90vh',
-              display: 'flex',
-              flexDirection: 'column',
-              boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)'
-            }}
-          >
-            <div style={{ padding: '16px 20px', borderBottom: '1px solid #e5e7eb', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <h2 style={{ margin: 0, fontSize: '18px', fontWeight: 'bold', color: '#111827' }}>Asistencia diaria</h2>
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-xl shadow-2xl w-full max-w-5xl max-h-[90vh] flex flex-col overflow-hidden animate-in fade-in zoom-in-95 duration-150">
+            {/* Header Modal */}
+            <div className="px-6 py-4 border-b border-slate-200 flex justify-between items-center bg-white">
+              <h2 className="text-lg font-bold text-slate-800">Asistencia diaria</h2>
               <button
                 onClick={() => setModalAbierto(false)}
-                style={{ background: 'none', border: 'none', fontSize: '24px', cursor: 'pointer', color: '#9ca3af' }}
+                className="text-slate-400 hover:text-slate-600 font-bold text-2xl leading-none px-2"
               >
                 &times;
               </button>
             </div>
 
-            <div style={{ padding: '12px 20px', background: '#f9fafb', borderBottom: '1px solid #e5e7eb', display: 'flex', alignItems: 'center', gap: '10px' }}>
-              <span style={{ fontSize: '14px', fontWeight: 'bold', color: '#374151' }}>Fecha:</span>
+            {/* Subheader Fecha */}
+            <div className="px-6 py-3 bg-slate-50 border-b border-slate-200 flex items-center gap-3">
+              <span className="text-sm font-semibold text-slate-700">Fecha:</span>
               <input
                 type="date"
                 value={fecha}
                 onChange={(e) => setFecha(e.target.value)}
-                style={{ padding: '4px 8px', borderRadius: '4px', border: '1px solid #ccc' }}
+                className="border border-slate-300 rounded-md px-3 py-1 text-sm bg-white outline-none focus:ring-2 focus:ring-sky-500"
               />
             </div>
 
-            <div style={{ padding: '20px', overflowY: 'auto', flex: 1 }}>
-              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '14px', textAlign: 'left' }}>
+            {/* Contenido Tabla Modal */}
+            <div className="p-6 overflow-y-auto flex-1">
+              <table className="w-full text-left text-sm border-collapse">
                 <thead>
-                  <tr style={{ background: '#2563eb', color: '#ffffff' }}>
-                    <th style={{ padding: '10px', textAlign: 'center', width: '40px' }}>#</th>
-                    <th style={{ padding: '10px' }}>NIE</th>
-                    <th style={{ padding: '10px' }}>APELLIDOS</th>
-                    <th style={{ padding: '10px' }}>NOMBRES</th>
-                    <th style={{ padding: '10px' }}>ESTADO</th>
-                    <th style={{ padding: '10px' }}>INASISTENCIA POR</th>
-                    <th style={{ padding: '10px' }}>OBSERVACIÓN</th>
+                  <tr className="bg-blue-600 text-white font-semibold">
+                    <th className="p-3 text-center w-10">#</th>
+                    <th className="p-3">NIE</th>
+                    <th className="p-3">APELLIDOS</th>
+                    <th className="p-3">NOMBRES</th>
+                    <th className="p-3">ESTADO</th>
+                    <th className="p-3">INASISTENCIA POR</th>
+                    <th className="p-3">OBSERVACIÓN</th>
                   </tr>
                 </thead>
-                <tbody>
+                <tbody className="divide-y divide-slate-200">
                   {alumnosModal.map((est, idx) => (
-                    <tr key={est.id || idx} style={{ borderBottom: '1px solid #e5e7eb' }}>
-                      <td style={{ padding: '8px', textAlign: 'center', color: '#6b7280' }}>{idx + 1}</td>
-                      <td style={{ padding: '8px', fontSize: '12px', color: '#4b5563' }}>{est.nie}</td>
-                      <td style={{ padding: '8px', fontWeight: 'bold', color: '#1f2937' }}>{est.apellidos}</td>
-                      <td style={{ padding: '8px', color: '#374151' }}>{est.nombres}</td>
-                      <td style={{ padding: '8px' }}>
+                    <tr key={est.estudiante_id || idx} className="hover:bg-slate-50">
+                      <td className="p-2.5 text-center text-slate-400">{idx + 1}</td>
+                      <td className="p-2.5 text-xs text-slate-600">{est.nie}</td>
+                      <td className="p-2.5 font-bold text-slate-800">{est.apellidos}</td>
+                      <td className="p-2.5 text-slate-700">{est.nombres}</td>
+                      <td className="p-2.5">
                         <select
-                          value={est.estado}
-                          onChange={(e) => handleCambioModal(idx, 'estado', e.target.value)}
-                          style={{ padding: '4px 8px', borderRadius: '4px', border: '1px solid #ccc' }}
+                          value={est.asistencia}
+                          onChange={(e) => handleCambioModal(idx, 'asistencia', e.target.value)}
+                          className="border border-slate-300 rounded-md px-2.5 py-1 text-sm bg-white outline-none focus:ring-2 focus:ring-sky-500"
                         >
                           <option value="Asistió">Asistió</option>
                           <option value="Faltó">Faltó</option>
                           <option value="Permiso">Permiso</option>
                         </select>
                       </td>
-                      <td style={{ padding: '8px' }}>
+                      <td className="p-2.5">
                         <select
-                          disabled={est.estado === 'Asistió'}
+                          disabled={est.asistencia === 'Asistió'}
                           value={est.inasistencia_por}
-                          onChange={(e) => handleCambioModal(idx, 'inasistencia_por', e.target.value)}
-                          style={{
-                            padding: '4px 8px',
-                            borderRadius: '4px',
-                            border: '1px solid #ccc',
-                            backgroundColor: est.estado === 'Asistió' ? '#f3f4f6' : '#fff'
-                          }}
+                          onChange={(e) =>
+                            handleCambioModal(idx, 'inasistencia_por', e.target.value)
+                          }
+                          className="border border-slate-300 rounded-md px-2.5 py-1 text-sm bg-white outline-none focus:ring-2 focus:ring-sky-500 disabled:bg-slate-100 disabled:text-slate-400 disabled:cursor-not-allowed"
                         >
                           <option value="">-- Seleccionar --</option>
                           <option value="Competencia Deportiva">Competencia Deportiva</option>
@@ -346,20 +320,16 @@ export const TablaAsistencia = () => {
                           <option value="Motivo Personal">Motivo Personal</option>
                         </select>
                       </td>
-                      <td style={{ padding: '8px' }}>
+                      <td className="p-2.5">
                         <input
                           type="text"
-                          disabled={est.estado === 'Asistió'}
+                          disabled={est.asistencia === 'Asistió'}
                           placeholder="Escribe una observación"
                           value={est.observacion}
-                          onChange={(e) => handleCambioModal(idx, 'observacion', e.target.value)}
-                          style={{
-                            padding: '4px 8px',
-                            borderRadius: '4px',
-                            border: '1px solid #ccc',
-                            width: '100%',
-                            backgroundColor: est.estado === 'Asistió' ? '#f3f4f6' : '#fff'
-                          }}
+                          onChange={(e) =>
+                            handleCambioModal(idx, 'observacion', e.target.value)
+                          }
+                          className="border border-slate-300 rounded-md px-2.5 py-1 text-sm w-full bg-white outline-none focus:ring-2 focus:ring-sky-500 disabled:bg-slate-100 disabled:text-slate-400 disabled:cursor-not-allowed"
                         />
                       </td>
                     </tr>
@@ -368,18 +338,20 @@ export const TablaAsistencia = () => {
               </table>
             </div>
 
-            <div style={{ padding: '16px 20px', borderTop: '1px solid #e5e7eb', display: 'flex', justifyContent: 'flex-end', gap: '10px', background: '#f9fafb' }}>
+            {/* Footer Modal */}
+            <div className="px-6 py-4 border-t border-slate-200 flex justify-end gap-3 bg-slate-50">
               <button
                 onClick={() => setModalAbierto(false)}
-                style={{ padding: '8px 16px', borderRadius: '6px', border: '1px solid #ccc', background: '#fff', color: '#374151', cursor: 'pointer' }}
+                className="px-4 py-2 border border-slate-300 rounded-lg text-slate-700 bg-white hover:bg-slate-100 font-medium text-sm transition-colors"
               >
                 Cancelar
               </button>
               <button
                 onClick={handleGuardarAsistencia}
-                style={{ padding: '8px 16px', borderRadius: '6px', border: 'none', background: '#2563eb', color: '#fff', fontWeight: 'bold', cursor: 'pointer' }}
+                disabled={guardando}
+                className="px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-semibold text-sm transition-colors shadow-sm disabled:bg-blue-300"
               >
-                Guardar
+                {guardando ? 'Guardando...' : 'Guardar'}
               </button>
             </div>
           </div>
