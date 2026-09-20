@@ -40,12 +40,13 @@ body, html, #root {
   margin-bottom: 24px;
   width: 100%;
   box-sizing: border-box;
+  overflow: hidden; /* Asegura que nada sobresalga fuera de la tarjeta */
 }
 
-/* --- HOMOGENEIZACIÓN Y ESTILOS DE TABLAS --- */
+/* --- HOMOGENEIZACIÓN Y ESTILOS DE TABLAS EN ESCRITORIO --- */
 .panel-card table {
   width: 100% !important;
-  table-layout: fixed;
+  border-collapse: collapse;
 }
 
 .panel-card th, .panel-card td {
@@ -90,7 +91,6 @@ body, html, #root {
 .navbar, 
 header, 
 div[style*="background"] { 
-  /* Ajusta si tu header usa una etiqueta específica */
   background-color: #ffffff !important;
   border-bottom: 2px solid #e2e8f0;
   box-shadow: 0 2px 8px rgba(31, 47, 152, 0.05);
@@ -124,24 +124,25 @@ header div {
 }
 
 /* =========================================================
-   ADAPTACIÓN RESPONSIVA PARA DISPOSITIVOS MÓVILES
+   ADAPTACIÓN RESPONSIVA OPTIMIZADA PARA MÓVILES
    ========================================================= */
 
 @media (max-width: 768px) {
   /* 1. Ajuste de contenedor principal y tarjetas */
   .app-main-container {
-    padding: 12px 10px !important;
+    padding: 10px 8px !important;
   }
 
   .panel-card {
     padding: 14px !important;
+    border-radius: 10px !important;
   }
 
   /* 2. Header superior en pantallas pequeñas */
   header .app-main-container {
     flex-direction: column !important;
     align-items: flex-start !important;
-    gap: 12px !important;
+    gap: 10px !important;
   }
 
   header .d-flex.align-items-center.gap-3 {
@@ -149,73 +150,52 @@ header div {
     justify-content: space-between !important;
   }
 
-  /* 3. Ajuste de Tablas: Habilita Scroll Horizontal sin cortar datos */
+  /* 3. Contenedor con Scroll de Tabla aislado */
   .table-responsive, 
-  div[style*="overflow-x"], 
-  .panel-card table {
-    display: block !important;
+  .panel-card > div:has(table) {
     width: 100% !important;
     overflow-x: auto !important;
-    white-space: nowrap !important;
     -webkit-overflow-scrolling: touch;
+    border-radius: 8px;
+    margin-top: 10px;
   }
 
-  /* 4. Adaptación del Modal de Asistencia */
-  div[style*="position: fixed"] > div[style*="max-width: 950px"] {
-    width: 96% !important;
-    max-height: 92vh !important;
-    padding: 12px !important;
-  }
-
-  /* Tablas dentro de modales */
-  div[style*="position: fixed"] table {
-    display: block !important;
-    overflow-x: auto !important;
-    white-space: nowrap !important;
-  }
-
-  /* 5. Aumento de tamaño táctil para botones y campos */
-  select, input, button {
-    font-size: 16px !important; /* Evita zoom automático en iPhone/Safari */
-    min-height: 42px !important;
-  }
-}
-
-/* =========================================================
-   AJUSTE RESPONSIVO GLOBAL Y PANEL DE ADMINISTRACIÓN
-   ========================================================= */
-
-/* 1. Desactivar el 'fixed' en pantallas pequeñas para evitar compresión de celdas */
-@media (max-width: 768px) {
+  /* 4. Comportamiento interno de la tabla */
   .panel-card table {
+    display: table !important; /* Mantiene la coherencia de tabla en lugar de desarmarla */
+    width: 100% !important;
+    min-width: 500px !important; /* Garantiza ancho mínimo para evitar compresión */
     table-layout: auto !important;
   }
 
-  /* Contenedores de tablas en Admin */
-  .panel-card, .table-responsive {
-    overflow-x: auto !important;
-    -webkit-overflow-scrolling: touch;
-  }
-
-  /* Ajuste de celdas para que no se encamen los textos en celulares */
-  .panel-card th, .panel-card td {
+  .panel-card th, 
+  .panel-card td {
     white-space: nowrap !important;
-    padding: 10px 12px !important;
+    padding: 10px 8px !important;
     font-size: 13px !important;
+    vertical-align: middle !important;
   }
 
-  /* Ajuste de selectores y filtros del Admin en línea */
-  .panel-card .row, 
-  .panel-card .d-flex {
-    flex-direction: column !important;
-    align-items: stretch !important;
-    gap: 10px !important;
+  /* 5. Ajuste de botones en acciones */
+  .panel-card td .btn,
+  .panel-card td button {
+    padding: 4px 8px !important;
+    font-size: 12px !important;
+    white-space: nowrap !important;
   }
 
-  .panel-card .btn, 
-  .panel-card select, 
-  .panel-card input {
-    width: 100% !important;
-    margin-bottom: 5px;
+  /* 6. Adaptación de formularios e inputs en Admin */
+  .panel-card input, 
+  .panel-card select {
+    font-size: 15px !important;
+    min-height: 40px !important;
+    margin-bottom: 8px;
+  }
+
+  /* 7. Modal de Asistencia */
+  div[style*="position: fixed"] > div[style*="max-width: 950px"] {
+    width: 95% !important;
+    max-height: 90vh !important;
+    padding: 12px !important;
   }
 }
