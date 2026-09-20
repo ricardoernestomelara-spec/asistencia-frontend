@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
 
 // URL base de la API PHP en tu servidor backend
 const API_URL = 'https://tu-servidor-backend.com/api'; // <--- Ajusta esta URL a tu backend real
@@ -30,18 +29,18 @@ export const TablaAsistencia = () => {
     if (!seccion) return;
     setCargando(true);
     try {
-      // Se envía explícitamente el parámetro fecha formateado YYYY-MM-DD
-      const res = await axios.get(`${API_URL}/asistencia.php`, {
-        params: {
-          seccion: seccion,
-          asignatura: asignatura,
-          periodo: periodo,
-          fecha: fecha
-        }
+      const queryParams = new URLSearchParams({
+        seccion: seccion,
+        asignatura: asignatura,
+        periodo: periodo,
+        fecha: fecha
       });
 
-      if (res.data && res.data.success) {
-        const listaObtenida = res.data.alumnos || res.data.estudiantes || [];
+      const res = await fetch(`${API_URL}/asistencia.php?${queryParams.toString()}`);
+      const data = await res.json();
+
+      if (data && data.success) {
+        const listaObtenida = data.alumnos || data.estudiantes || [];
         setAlumnos(listaObtenida);
       } else {
         setAlumnos([]);
@@ -60,7 +59,6 @@ export const TablaAsistencia = () => {
 
   // 2. Abrir Modal de Asistencia
   const handleAbrirModal = () => {
-    // Clonar lista actual para no mutar directamente la vista previa
     const copiaInicial = alumnos.map((est) => ({
       ...est,
       estado: est.asistencia || est.estado || 'Asistió',
@@ -76,7 +74,6 @@ export const TablaAsistencia = () => {
     const listaActualizada = [...alumnosModal];
     listaActualizada[index][campo] = valor;
     
-    // Si cambia a "Asistió", limpiar campos de inasistencia
     if (campo === 'estado' && valor === 'Asistió') {
       listaActualizada[index].inasistencia_por = '';
       listaActualizada[index].observacion = '';
@@ -88,21 +85,28 @@ export const TablaAsistencia = () => {
   const handleGuardarAsistencia = async () => {
     try {
       const payload = {
-        fecha: fecha, // Envía la fecha seleccionada local (ej: 2026-09-19)
+        fecha: fecha,
         seccion: seccion,
         asignatura: asignatura,
         periodo: periodo,
         detalles: alumnosModal
       };
 
-      const res = await axios.post(`${API_URL}/guardar_asistencia.php`, payload);
+      const res = await fetch(`${API_URL}/guardar_asistencia.php`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(payload)
+      });
 
-      if (res.data && res.data.success) {
+      const data = await res.json();
+
+      if (data && data.success) {
         setModalAbierto(false);
-        // Volver a consultar inmediatamente para reflejar cambios en la tabla
         await cargarAsistencia();
       } else {
-        alert('Ocurrió un inconveniente al guardar: ' + (res.data.message || 'Error desconocido'));
+        alert('Ocurrió un inconveniente al guardar: ' + (data.message || 'Error desconocido'));
       }
     } catch (error) {
       console.error('Error al guardar asistencia:', error);
