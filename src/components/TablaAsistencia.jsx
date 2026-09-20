@@ -115,10 +115,10 @@ const TablaAsistencia = ({ docenteId = 1 }) => {
             const mapaAsistencias = {};
             
             listaAlumnos.forEach(alumno => {
-              // Reconocer 'asistencia' o 'estado' del backend
+              const alumnoId = alumno.id || alumno.estudiante_id;
               const estado = alumno.asistencia || alumno.estado;
-              if (estado && estado !== '--') {
-                mapaAsistencias[`${alumno.id}-${fechaHeaderCorta}`] = estado;
+              if (alumnoId && estado && estado !== '--') {
+                mapaAsistencias[`${alumnoId}-${fechaHeaderCorta}`] = estado;
               }
             });
 
@@ -141,7 +141,7 @@ const TablaAsistencia = ({ docenteId = 1 }) => {
       seccion: seccionSeleccionada,
       asignatura: asignaturaSeleccionada,
       periodo: periodo,
-      detalles: datosModal.detalles
+      detalles: datosModal.detalles || datosModal.asistencia || datosModal
     };
 
     try {
@@ -155,7 +155,7 @@ const TablaAsistencia = ({ docenteId = 1 }) => {
       
       if (data.success) {
         setMostrarModalPasarAsistencia(false);
-        // Actualizamos la fecha de consulta activa con la fecha guardada en el modal
+        // Sincronizar fecha activa de la vista con la guardada en el modal
         if (datosModal.fecha) {
           setFechaConsulta(datosModal.fecha);
           cargarDatos(datosModal.fecha);
@@ -177,23 +177,23 @@ const TablaAsistencia = ({ docenteId = 1 }) => {
 
     const clave = `${alumnoId}-${fechaCorta}`;
     
-    // Actualización inmediata en UI
+    // Actualización inmediata en la interfaz
     setAsistenciasGuardadas(prev => ({ ...prev, [clave]: nuevoEstado }));
 
-    const anoActual = new Date().getFullYear();
+    let fechaCompleta = fechaConsulta;
     const partes = fechaCorta.split('/');
-    
-    if (partes.length !== 2) return;
-    
-    const [mm, dd] = partes;
-    const fechaCompleta = `${anoActual}-${mm.padStart(2, '0')}-${dd.padStart(2, '0')}`;
+    if (partes.length === 2) {
+      const [mm, dd] = partes;
+      const anoActual = new Date().getFullYear();
+      fechaCompleta = `${anoActual}-${mm.padStart(2, '0')}-${dd.padStart(2, '0')}`;
+    }
 
     const payload = {
       fecha: fechaCompleta,
       seccion: seccionSeleccionada,
       asignatura: asignaturaSeleccionada,
       periodo: periodo,
-      detalles: [{ estudiante_id: alumnoId, estado: nuevoEstado }]
+      detalles: [{ estudiante_id: alumnoId, id: alumnoId, estado: nuevoEstado }]
     };
 
     fetch(`${API_BASE}/guardar_asistencia.php`, {
@@ -203,7 +203,9 @@ const TablaAsistencia = ({ docenteId = 1 }) => {
     })
     .then(res => res.json())
     .then(data => {
-      if (!data.success) {
+      if (data.success) {
+        cargarDatos(fechaCompleta);
+      } else {
         console.error("Error al guardar celda individual:", data.message);
       }
     })
@@ -347,26 +349,29 @@ const TablaAsistencia = ({ docenteId = 1 }) => {
                     </td>
                   </tr>
                 ) : (
-                  alumnos.map((alumno, index) => (
-                    <tr key={alumno.id || index} style={{ borderBottom: '1px solid #f1f5f9', backgroundColor: index % 2 === 0 ? '#ffffff' : '#fafafa' }}>
-                      <td style={{ padding: '12px 16px', color: '#94a3b8', fontWeight: '600' }}>{index + 1}</td>
-                      <td style={{ padding: '12px 16px', color: '#64748b', fontFamily: 'monospace' }}>{alumno.nie}</td>
-                      <td style={{ padding: '12px 16px', fontWeight: '600', color: '#0f172a' }}>{alumno.apellidos}</td>
-                      <td style={{ padding: '12px 16px', color: '#334155' }}>{alumno.nombres}</td>
-                      {fechasHeader.length === 0 ? (
-                        <td style={{ padding: '10px 12px', textAlign: 'center', color: '#94a3b8' }}>--</td>
-                      ) : (
-                        fechasHeader.map((fecha, i) => {
-                          const estadoRegistrado = asistenciasGuardadas[`${alumno.id}-${fecha}`] || 'Asistió';
-                          return (
-                            <td key={i} style={{ padding: '10px 12px', textAlign: 'center', borderLeft: '1px solid #f1f5f9' }}>
-                              {renderBadgeSelector(alumno.id, fecha, estadoRegistrado)}
-                            </td>
-                          );
-                        })
-                      )}
-                    </tr>
-                  ))
+                  alumnos.map((alumno, index) => {
+                    const alumnoId = alumno.id || alumno.estudiante_id;
+                    return (
+                      <tr key={alumnoId || index} style={{ borderBottom: '1px solid #f1f5f9', backgroundColor: index % 2 === 0 ? '#ffffff' : '#fafafa' }}>
+                        <td style={{ padding: '12px 16px', color: '#94a3b8', fontWeight: '600' }}>{index + 1}</td>
+                        <td style={{ padding: '12px 16px', color: '#64748b', fontFamily: 'monospace' }}>{alumno.nie}</td>
+                        <td style={{ padding: '12px 16px', fontWeight: '600', color: '#0f172a' }}>{alumno.apellidos}</td>
+                        <td style={{ padding: '12px 16px', color: '#334155' }}>{alumno.nombres}</td>
+                        {fechasHeader.length === 0 ? (
+                          <td style={{ padding: '10px 12px', textAlign: 'center', color: '#94a3b8' }}>--</td>
+                        ) : (
+                          fechasHeader.map((fecha, i) => {
+                            const estadoRegistrado = asistenciasGuardadas[`${alumnoId}-${fecha}`] || 'Asistió';
+                            return (
+                              <td key={i} style={{ padding: '10px 12px', textAlign: 'center', borderLeft: '1px solid #f1f5f9' }}>
+                                {renderBadgeSelector(alumnoId, fecha, estadoRegistrado)}
+                              </td>
+                            );
+                          })
+                        )}
+                      </tr>
+                    );
+                  })
                 )}
               </tbody>
             </table>
