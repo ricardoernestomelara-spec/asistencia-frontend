@@ -2,6 +2,49 @@ import React, { useState, useEffect } from 'react';
 
 const API_URL = 'https://asistencia-backend-qgim.onrender.com/api';
 
+const OPCIONES_ESTADO = [
+  'Asistió',
+  'Faltó',
+  'Permiso',
+  'Incapacidad',
+  'Tardía',
+  'Retirado'
+];
+
+const OPCIONES_MOTIVO = [
+  'Aislamiento social',
+  'Bajo rendimiento',
+  'Competencia Deportiva',
+  'Cuarentena',
+  'Cuido de familiar',
+  'Desinterés de los padres por la educación',
+  'Dificultad del transporte',
+  'Dificultades de aprendizajes',
+  'Discapacidad del estudiante',
+  'Docente no asistió a clases',
+  'Embarazo precoz',
+  'Enfermedad',
+  'Falta de motivación',
+  'Inseguridad en el camino a la escuela',
+  'Integrante de grupos que lo aleja de la escuela',
+  'Muerte de un pariente',
+  'Motivo Personal',
+  'Nacimiento de hermano(a)',
+  'No desea presentarse a exámenes',
+  'No desea presentar tarea',
+  'Noviazgo a temprana edad',
+  'Otro, justificado',
+  'Otro, No justificado',
+  'Presencia de alcohólicos en el hogar',
+  'Presencia de la menstruación',
+  'Problemas relacionados con los compañeros',
+  'Retención en la casa',
+  'Separación de los padres',
+  'Se retiró del país',
+  'Socieeconómico',
+  'Trabajo'
+];
+
 export const TablaAsistencia = () => {
   const obtenerFechaLocal = (fechaObj = new Date()) => {
     const year = fechaObj.getFullYear();
@@ -117,6 +160,24 @@ export const TablaAsistencia = () => {
     }
   };
 
+  const obtenerEstilosBadge = (estado) => {
+    switch (estado) {
+      case 'Faltó':
+        return { backgroundColor: '#fde8e8', color: '#9b1c1c' };
+      case 'Permiso':
+        return { backgroundColor: '#fef3c7', color: '#92400e' };
+      case 'Incapacidad':
+        return { backgroundColor: '#e0e7ff', color: '#3730a3' };
+      case 'Tardía':
+        return { backgroundColor: '#ffedd5', color: '#9a3412' };
+      case 'Retirado':
+        return { backgroundColor: '#f3f4f6', color: '#374151' };
+      case 'Asistió':
+      default:
+        return { backgroundColor: '#d1fae5', color: '#065f46' };
+    }
+  };
+
   return (
     <div style={{ padding: '24px', maxWidth: '1200px', margin: '0 auto', fontFamily: 'system-ui, sans-serif' }}>
       {/* Caja Superior Filtros */}
@@ -221,6 +282,7 @@ export const TablaAsistencia = () => {
               ) : (
                 alumnos.map((est, idx) => {
                   const estadoActual = est.asistencia || est.estado || 'Asistió';
+                  const estiloBadge = obtenerEstilosBadge(estadoActual);
                   return (
                     <tr key={est.estudiante_id || est.id || idx} style={{ borderBottom: '1px solid #eee' }}>
                       <td style={{ padding: '12px', textAlign: 'center', color: '#888' }}>{idx + 1}</td>
@@ -234,10 +296,7 @@ export const TablaAsistencia = () => {
                             borderRadius: '12px',
                             fontSize: '12px',
                             fontWeight: 'bold',
-                            backgroundColor:
-                              estadoActual === 'Faltó' ? '#fde8e8' : estadoActual === 'Permiso' ? '#fef3c7' : '#d1fae5',
-                            color:
-                              estadoActual === 'Faltó' ? '#9b1c1c' : estadoActual === 'Permiso' ? '#92400e' : '#065f46'
+                            ...estiloBadge
                           }}
                         >
                           {estadoActual}
@@ -326,9 +385,9 @@ export const TablaAsistencia = () => {
                           onChange={(e) => handleCambioModal(idx, 'asistencia', e.target.value)}
                           style={{ padding: '4px 6px', border: '1px solid #ccc', borderRadius: '4px' }}
                         >
-                          <option value="Asistió">Asistió</option>
-                          <option value="Faltó">Faltó</option>
-                          <option value="Permiso">Permiso</option>
+                          {OPCIONES_ESTADO.map((opt) => (
+                            <option key={opt} value={opt}>{opt}</option>
+                          ))}
                         </select>
                       </td>
                       <td style={{ padding: '8px' }}>
@@ -339,9 +398,9 @@ export const TablaAsistencia = () => {
                           style={{ padding: '4px 6px', border: '1px solid #ccc', borderRadius: '4px' }}
                         >
                           <option value="">-- Seleccionar --</option>
-                          <option value="Competencia Deportiva">Competencia Deportiva</option>
-                          <option value="Enfermedad">Enfermedad</option>
-                          <option value="Motivo Personal">Motivo Personal</option>
+                          {OPCIONES_MOTIVO.map((opt) => (
+                            <option key={opt} value={opt}>{opt}</option>
+                          ))}
                         </select>
                       </td>
                       <td style={{ padding: '8px' }}>
