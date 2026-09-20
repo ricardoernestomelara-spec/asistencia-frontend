@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 
 // URL exacta de tu backend en Render
-const API_URL = 'https://asistencia-backend-qgim.onrender.com';
+const API_URL = 'https://asistencia-backend-qgim.onrender.com/api';
 
 export const TablaAsistencia = () => {
   // Función auxiliar para formatear la fecha local en YYYY-MM-DD sin desfase UTC
