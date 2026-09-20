@@ -47,7 +47,7 @@ const GestionSecciones = () => {
       .catch((err) => console.error("Error al vaciar alumnos:", err));
   };
 
-  // Función para procesar y subir archivo CSV
+  // Función para subir el CSV usando el backend existente: insertar_alumnos.php
   const handleSubirCSV = (e) => {
     e.preventDefault();
     if (!archivo) {
@@ -63,15 +63,15 @@ const GestionSecciones = () => {
 
     const formData = new FormData();
     formData.append('archivo', archivo);
-    formData.append('seccion', seccionSeleccionada);
+    formData.append('seccion', seccionSeleccionada); // Envia el nombre que espera insertar_alumnos.php
 
-    fetch(`${API_BASE}/subir_estudiantes_csv.php`, {
+    fetch(`${API_BASE}/insertar_alumnos.php`, {
       method: 'POST',
       body: formData,
     })
       .then((res) => res.json())
       .then((data) => {
-        if (data.success || data.ok) {
+        if (data.success) {
           alert(data.message || 'Carga masiva completada con éxito.');
           setArchivo(null);
           const input = document.getElementById('input-file-csv');
@@ -90,7 +90,7 @@ const GestionSecciones = () => {
 
   return (
     <div className="container mt-4">
-      {/* 1. Tarjeta de Carga Masiva (CSV) */}
+      {/* Zona de Carga Masiva (CSV) */}
       <div className="card shadow-sm p-4 mb-4 border-primary">
         <h4 className="fw-bold text-primary mb-2">📂 Carga Masiva de Alumnos (CSV)</h4>
         <p className="text-muted small mb-3">
@@ -141,7 +141,7 @@ const GestionSecciones = () => {
         </form>
       </div>
 
-      {/* 2. Tabla Principal de Gestión */}
+      {/* Tabla Principal */}
       <div className="card shadow-sm p-4">
         <h3 className="fw-bold mb-1">Gestión de Secciones</h3>
         <p className="text-muted">Administra las secciones registradas en el sistema.</p>
@@ -186,5 +186,4 @@ const GestionSecciones = () => {
   );
 };
 
-// EXPORTACIÓN POR DEFECTO PARA CORREGIR EL ERROR DE VERCEL
 export default GestionSecciones;
