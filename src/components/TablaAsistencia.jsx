@@ -105,60 +105,69 @@ export const TablaAsistencia = () => {
       });
 
       const data = await res.json();
-      console.log('Respuesta backend al guardar:', data);
 
-      setModalAbierto(false);
-      await cargarAsistencia();
+      if (data && (data.success || res.ok)) {
+        // Actualizamos la lista principal inmediatamente en pantalla
+        setAlumnos((prevAlumnos) =>
+          prevAlumnos.map((est) => {
+            const modificado = alumnosModal.find(
+              (m) => (m.estudiante_id || m.id) === (est.estudiante_id || est.id)
+            );
+            if (modificado) {
+              return {
+                ...est,
+                asistencia: modificado.asistencia,
+                estado: modificado.asistencia,
+                inasistencia_por: modificado.inasistencia_por,
+                observacion: modificado.observacion
+              };
+            }
+            return est;
+          })
+        );
+
+        setModalAbierto(false);
+      } else {
+        alert('Respuesta del servidor: ' + (data.message || 'Error al guardar.'));
+      }
     } catch (error) {
       console.error('Error al guardar asistencia:', error);
-      alert('Error al guardar.');
+      alert('Error de conexión al intentar guardar.');
     } finally {
       setGuardando(false);
     }
   };
 
   return (
-    <div style={{ padding: '24px', maxWidth: '1200px', margin: '0 auto', fontFamily: 'system-ui, sans-serif' }}>
-      {/* Caja Superior Filtros */}
-      <div style={{ background: '#fff', border: '2px solid #00a8e8', borderRadius: '12px', padding: '20px', marginBottom: '24px', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05)' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', flexWrap: 'wrap', gap: '12px' }}>
+    <div className="contenedor-principal">
+      <div className="tarjeta-filtro">
+        <div className="fila-superior">
           <button
             onClick={handleAbrirModal}
             disabled={alumnos.length === 0}
-            style={{
-              backgroundColor: alumnos.length === 0 ? '#cccccc' : '#00a8e8',
-              color: '#ffffff',
-              border: 'none',
-              padding: '10px 24px',
-              borderRadius: '25px',
-              fontWeight: 'bold',
-              fontSize: '14px',
-              cursor: alumnos.length === 0 ? 'not-allowed' : 'pointer'
-            }}
+            className="btn-tomar-asistencia"
           >
             + Tomar Asistencia
           </button>
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <label style={{ fontSize: '14px', fontWeight: 'bold', color: '#333' }}>Fecha:</label>
+          <div className="grupo-fecha">
+            <label className="label-filtro">Fecha:</label>
             <input
               type="date"
               value={fecha}
               onChange={(e) => setFecha(e.target.value)}
-              style={{ border: '1px solid #ccc', borderRadius: '6px', padding: '6px 12px', fontSize: '14px' }}
+              className="input-fecha"
             />
           </div>
         </div>
 
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '16px' }}>
-          <div>
-            <label style={{ display: 'block', fontSize: '11px', fontWeight: 'bold', color: '#555', marginBottom: '6px' }}>
-              PERÍODO
-            </label>
+        <div className="grid-filtros">
+          <div className="campo-filtro">
+            <label className="label-filtro">PERÍODO</label>
             <select
               value={periodo}
               onChange={(e) => setPeriodo(e.target.value)}
-              style={{ width: '100%', border: '1px solid #ccc', borderRadius: '6px', padding: '8px', fontSize: '14px' }}
+              className="select-filtro"
             >
               <option value="1">1° Período</option>
               <option value="2">2° Período</option>
@@ -166,28 +175,24 @@ export const TablaAsistencia = () => {
             </select>
           </div>
 
-          <div>
-            <label style={{ display: 'block', fontSize: '11px', fontWeight: 'bold', color: '#555', marginBottom: '6px' }}>
-              SECCIÓN
-            </label>
+          <div className="campo-filtro">
+            <label className="label-filtro">SECCIÓN</label>
             <select
               value={seccion}
               onChange={(e) => setSeccion(e.target.value)}
-              style={{ width: '100%', border: '1px solid #ccc', borderRadius: '6px', padding: '8px', fontSize: '14px' }}
+              className="select-filtro"
             >
               <option value="1° A Software">1° A Software</option>
               <option value="1° B Software">1° B Software</option>
             </select>
           </div>
 
-          <div>
-            <label style={{ display: 'block', fontSize: '11px', fontWeight: 'bold', color: '#555', marginBottom: '6px' }}>
-              ASIGNATURA
-            </label>
+          <div className="campo-filtro">
+            <label className="label-filtro">ASIGNATURA</label>
             <select
               value={asignatura}
               onChange={(e) => setAsignatura(e.target.value)}
-              style={{ width: '100%', border: '1px solid #ccc', borderRadius: '6px', padding: '8px', fontSize: '14px' }}
+              className="select-filtro"
             >
               <option value="Mod 1.1 DS">Mod 1.1 DS</option>
               <option value="Mod 1.2 BD">Mod 1.2 BD</option>
@@ -196,50 +201,44 @@ export const TablaAsistencia = () => {
         </div>
       </div>
 
-      {/* Tabla */}
-      <div style={{ background: '#fff', border: '1px solid #e0e0e0', borderRadius: '8px', overflow: 'hidden' }}>
+      <div className="contenedor-tabla">
         {cargando ? (
-          <div style={{ padding: '30px', textAlign: 'center', color: '#666' }}>Cargando registros...</div>
+          <div className="mensaje-cargando">Cargando registros...</div>
         ) : (
-          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '14px', textAlign: 'left' }}>
+          <table className="tabla-asistencia">
             <thead>
-              <tr style={{ borderBottom: '2px solid #e0e0e0', background: '#fafafa', color: '#333' }}>
-                <th style={{ padding: '12px', textAlign: 'center', width: '40px' }}>#</th>
-                <th style={{ padding: '12px' }}>NIE</th>
-                <th style={{ padding: '12px' }}>APELLIDOS</th>
-                <th style={{ padding: '12px' }}>NOMBRES</th>
-                <th style={{ padding: '12px', textAlign: 'center' }}>{fecha.split('-').reverse().slice(0, 2).join('/')}</th>
+              <tr>
+                <th style={{ textAlign: 'center', width: '40px' }}>#</th>
+                <th>NIE</th>
+                <th>APELLIDOS</th>
+                <th>NOMBRES</th>
+                <th style={{ textAlign: 'center' }}>
+                  {fecha.split('-').reverse().slice(0, 2).join('/')}
+                </th>
               </tr>
             </thead>
             <tbody>
               {alumnos.length === 0 ? (
                 <tr>
-                  <td colSpan="5" style={{ padding: '24px', textAlign: 'center', color: '#999' }}>
-                    No hay registros disponibles.
+                  <td colSpan="5" style={{ textAlign: 'center', padding: '20px' }}>
+                    No se encontraron registros para esta selección.
                   </td>
                 </tr>
               ) : (
                 alumnos.map((est, idx) => {
                   const estadoActual = est.asistencia || est.estado || 'Asistió';
+                  let claseBadge = 'badge-asistio';
+                  if (estadoActual === 'Faltó') claseBadge = 'badge-falto';
+                  if (estadoActual === 'Permiso') claseBadge = 'badge-permiso';
+
                   return (
-                    <tr key={est.estudiante_id || est.id || idx} style={{ borderBottom: '1px solid #eee' }}>
-                      <td style={{ padding: '12px', textAlign: 'center', color: '#888' }}>{idx + 1}</td>
-                      <td style={{ padding: '12px', color: '#444' }}>{est.nie}</td>
-                      <td style={{ padding: '12px', fontWeight: 'bold', color: '#111' }}>{est.apellidos}</td>
-                      <td style={{ padding: '12px', color: '#333' }}>{est.nombres}</td>
-                      <td style={{ padding: '12px', textAlign: 'center' }}>
-                        <span
-                          style={{
-                            padding: '4px 12px',
-                            borderRadius: '12px',
-                            fontSize: '12px',
-                            fontWeight: 'bold',
-                            backgroundColor:
-                              estadoActual === 'Faltó' ? '#fde8e8' : estadoActual === 'Permiso' ? '#fef3c7' : '#d1fae5',
-                            color:
-                              estadoActual === 'Faltó' ? '#9b1c1c' : estadoActual === 'Permiso' ? '#92400e' : '#065f46'
-                          }}
-                        >
+                    <tr key={est.estudiante_id || est.id || idx}>
+                      <td style={{ textAlign: 'center' }}>{idx + 1}</td>
+                      <td>{est.nie}</td>
+                      <td><strong>{est.apellidos}</strong></td>
+                      <td>{est.nombres}</td>
+                      <td style={{ textAlign: 'center' }}>
+                        <span className={`badge-asistencia ${claseBadge}`}>
                           {estadoActual}
                         </span>
                       </td>
@@ -252,45 +251,46 @@ export const TablaAsistencia = () => {
         )}
       </div>
 
-      {/* Modal */}
       {modalAbierto && (
         <div
           style={{
             position: 'fixed',
             top: 0,
             left: 0,
-            width: '100vw',
-            height: '100vh',
-            backgroundColor: 'rgba(0, 0, 0, 0.5)',
+            right: 0,
+            bottom: 0,
+            backgroundColor: 'rgba(0, 0, 0, 0.4)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            zIndex: 9999
+            zIndex: 9999,
+            padding: '16px'
           }}
         >
           <div
             style={{
-              background: '#fff',
+              backgroundColor: '#ffffff',
               borderRadius: '12px',
-              width: '90%',
-              maxWidth: '950px',
+              width: '100%',
+              maxWidth: '920px',
               maxHeight: '85vh',
               display: 'flex',
               flexDirection: 'column',
-              boxShadow: '0 10px 25px rgba(0,0,0,0.2)'
+              boxShadow: '0 20px 25px -5px rgba(0,0,0,0.2)',
+              overflow: 'hidden'
             }}
           >
             <div style={{ padding: '16px 20px', borderBottom: '1px solid #eee', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <h3 style={{ margin: 0, fontSize: '18px', fontWeight: 'bold' }}>Asistencia diaria</h3>
               <button
                 onClick={() => setModalAbierto(false)}
-                style={{ background: 'none', border: 'none', fontSize: '24px', cursor: 'pointer', color: '#888' }}
+                style={{ background: 'none', border: 'none', fontSize: '24px', cursor: 'pointer', color: '#999' }}
               >
                 &times;
               </button>
             </div>
 
-            <div style={{ padding: '12px 20px', background: '#fafafa', borderBottom: '1px solid #eee', display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <div style={{ padding: '12px 20px', backgroundColor: '#f9f9f9', borderBottom: '1px solid #eee', display: 'flex', itemsAlign: 'center', gap: '10px' }}>
               <span style={{ fontSize: '14px', fontWeight: 'bold' }}>Fecha:</span>
               <input
                 type="date"
@@ -301,42 +301,42 @@ export const TablaAsistencia = () => {
             </div>
 
             <div style={{ padding: '20px', overflowY: 'auto', flex: 1 }}>
-              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px', textAlign: 'left' }}>
+              <table className="tabla-asistencia">
                 <thead>
-                  <tr style={{ background: '#1d4ed8', color: '#fff' }}>
-                    <th style={{ padding: '10px', textAlign: 'center', width: '30px' }}>#</th>
-                    <th style={{ padding: '10px' }}>NIE</th>
-                    <th style={{ padding: '10px' }}>APELLIDOS</th>
-                    <th style={{ padding: '10px' }}>NOMBRES</th>
-                    <th style={{ padding: '10px' }}>ESTADO</th>
-                    <th style={{ padding: '10px' }}>INASISTENCIA POR</th>
-                    <th style={{ padding: '10px' }}>OBSERVACIÓN</th>
+                  <tr style={{ backgroundColor: '#2563eb', color: '#ffffff' }}>
+                    <th style={{ textAlign: 'center', width: '35px' }}>#</th>
+                    <th>NIE</th>
+                    <th>APELLIDOS</th>
+                    <th>NOMBRES</th>
+                    <th>ESTADO</th>
+                    <th>INASISTENCIA POR</th>
+                    <th>OBSERVACIÓN</th>
                   </tr>
                 </thead>
                 <tbody>
                   {alumnosModal.map((est, idx) => (
-                    <tr key={est.estudiante_id || idx} style={{ borderBottom: '1px solid #eee' }}>
-                      <td style={{ padding: '8px', textAlign: 'center', color: '#777' }}>{idx + 1}</td>
-                      <td style={{ padding: '8px', color: '#555' }}>{est.nie}</td>
-                      <td style={{ padding: '8px', fontWeight: 'bold', color: '#111' }}>{est.apellidos}</td>
-                      <td style={{ padding: '8px', color: '#333' }}>{est.nombres}</td>
-                      <td style={{ padding: '8px' }}>
+                    <tr key={est.estudiante_id || idx}>
+                      <td style={{ textAlign: 'center' }}>{idx + 1}</td>
+                      <td style={{ fontSize: '12px' }}>{est.nie}</td>
+                      <td><strong>{est.apellidos}</strong></td>
+                      <td>{est.nombres}</td>
+                      <td>
                         <select
                           value={est.asistencia}
                           onChange={(e) => handleCambioModal(idx, 'asistencia', e.target.value)}
-                          style={{ padding: '4px 6px', border: '1px solid #ccc', borderRadius: '4px' }}
+                          style={{ padding: '4px 8px', borderRadius: '4px', border: '1px solid #ccc' }}
                         >
                           <option value="Asistió">Asistió</option>
                           <option value="Faltó">Faltó</option>
                           <option value="Permiso">Permiso</option>
                         </select>
                       </td>
-                      <td style={{ padding: '8px' }}>
+                      <td>
                         <select
                           disabled={est.asistencia === 'Asistió'}
                           value={est.inasistencia_por}
                           onChange={(e) => handleCambioModal(idx, 'inasistencia_por', e.target.value)}
-                          style={{ padding: '4px 6px', border: '1px solid #ccc', borderRadius: '4px' }}
+                          style={{ padding: '4px 8px', borderRadius: '4px', border: '1px solid #ccc' }}
                         >
                           <option value="">-- Seleccionar --</option>
                           <option value="Competencia Deportiva">Competencia Deportiva</option>
@@ -344,14 +344,14 @@ export const TablaAsistencia = () => {
                           <option value="Motivo Personal">Motivo Personal</option>
                         </select>
                       </td>
-                      <td style={{ padding: '8px' }}>
+                      <td>
                         <input
                           type="text"
                           disabled={est.asistencia === 'Asistió'}
                           placeholder="Escribe una observación"
                           value={est.observacion}
                           onChange={(e) => handleCambioModal(idx, 'observacion', e.target.value)}
-                          style={{ padding: '4px 6px', border: '1px solid #ccc', borderRadius: '4px', width: '100%' }}
+                          style={{ padding: '4px 8px', borderRadius: '4px', border: '1px solid #ccc', width: '100%' }}
                         />
                       </td>
                     </tr>
@@ -360,17 +360,17 @@ export const TablaAsistencia = () => {
               </table>
             </div>
 
-            <div style={{ padding: '16px 20px', borderTop: '1px solid #eee', display: 'flex', justifyContent: 'flex-end', gap: '10px', background: '#fafafa' }}>
+            <div style={{ padding: '16px 20px', borderTop: '1px solid #eee', display: 'flex', justifyContent: 'flex-end', gap: '10px', backgroundColor: '#f9f9f9' }}>
               <button
                 onClick={() => setModalAbierto(false)}
-                style={{ padding: '8px 16px', border: '1px solid #ccc', background: '#fff', borderRadius: '6px', cursor: 'pointer' }}
+                style={{ padding: '8px 16px', borderRadius: '6px', border: '1px solid #ccc', backgroundColor: '#fff', cursor: 'pointer' }}
               >
                 Cancelar
               </button>
               <button
                 onClick={handleGuardarAsistencia}
                 disabled={guardando}
-                style={{ padding: '8px 20px', border: 'none', background: '#1d4ed8', color: '#fff', borderRadius: '6px', fontWeight: 'bold', cursor: 'pointer' }}
+                style={{ padding: '8px 20px', borderRadius: '6px', border: 'none', backgroundColor: '#2563eb', color: '#fff', fontWeight: 'bold', cursor: 'pointer' }}
               >
                 {guardando ? 'Guardando...' : 'Guardar'}
               </button>
