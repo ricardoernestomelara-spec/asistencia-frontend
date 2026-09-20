@@ -115,6 +115,7 @@ const TablaAsistencia = ({ docenteId = 1 }) => {
             const mapaAsistencias = {};
             
             listaAlumnos.forEach(alumno => {
+              // Mapeo unificado considerando id o estudiante_id
               const alumnoId = alumno.id || alumno.estudiante_id;
               const estado = alumno.asistencia || alumno.estado;
               if (alumnoId && estado && estado !== '--') {
@@ -134,10 +135,13 @@ const TablaAsistencia = ({ docenteId = 1 }) => {
     cargarDatos(fechaConsulta);
   }, [seccionSeleccionada, asignaturaSeleccionada, periodo, vistaReporte, fechaConsulta]);
 
-  // 4. Guardar asistencia masiva desde el modal
+  // 4. Guardar asistencia masiva desde el modal y actualizar la fecha activa
   const guardarAsistenciaModal = async (datosModal) => {
+    // Si el modal devuelve una fecha la usamos, de lo contrario usamos la actual de fechaConsulta
+    const fechaSeleccionada = datosModal.fecha || fechaConsulta;
+
     const payload = {
-      fecha: datosModal.fecha,
+      fecha: fechaSeleccionada,
       seccion: seccionSeleccionada,
       asignatura: asignaturaSeleccionada,
       periodo: periodo,
@@ -155,13 +159,9 @@ const TablaAsistencia = ({ docenteId = 1 }) => {
       
       if (data.success) {
         setMostrarModalPasarAsistencia(false);
-        // Sincronizar fecha activa de la vista con la guardada en el modal
-        if (datosModal.fecha) {
-          setFechaConsulta(datosModal.fecha);
-          cargarDatos(datosModal.fecha);
-        } else {
-          cargarDatos();
-        }
+        // Sincronizar fecha activa de la vista principal con la elegida en el modal
+        setFechaConsulta(fechaSeleccionada);
+        cargarDatos(fechaSeleccionada);
       } else {
         alert("Error al guardar: " + (data.message || "Error desconocido"));
       }
@@ -171,7 +171,7 @@ const TablaAsistencia = ({ docenteId = 1 }) => {
     }
   };
 
-  // 5. Actualizar celda individual dinámicamente con validación de fecha
+  // 5. Actualizar celda individual dinámicamente
   const actualizarAsistenciaIndividual = (alumnoId, fechaCorta, nuevoEstado) => {
     if (!fechaCorta || fechaCorta === '00/00') return;
 
@@ -219,7 +219,7 @@ const TablaAsistencia = ({ docenteId = 1 }) => {
     if (estadoActual === 'Faltó' || estadoActual === 'A') {
       style = { bg: '#fee2e2', color: '#b91c1c', border: '#fca5a5' }; // Faltó (Rojo)
     } else if (estadoActual === 'Permiso' || estadoActual === 'J') {
-      style = { bg: '#fef3c7', color: '#b45309', border: '#fde68a' }; // Permiso (Naranja/Amarillo)
+      style = { bg: '#fef3c7', color: '#b45309', border: '#fde68a' }; // Permiso (Naranja)
     } else if (estadoActual === 'Incapacidad') {
       style = { bg: '#f3e8ff', color: '#6b21a8', border: '#e9d5ff' }; // Incapacidad (Morado)
     } else if (estadoActual === 'Tardía' || estadoActual === 'L') {
