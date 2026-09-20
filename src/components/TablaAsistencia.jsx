@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
-
-const API_URL = 'https://asistencia-backend-qgim.onrender.com/api';
+import { API_BASE } from '../config';
 
 const OPCIONES_ESTADO = [
   'Asistió',
@@ -45,7 +44,7 @@ const OPCIONES_MOTIVO = [
   'Trabajo'
 ];
 
-export const TablaAsistencia = () => {
+export const TablaAsistencia = ({ docenteId }) => {
   const obtenerFechaLocal = (fechaObj = new Date()) => {
     const year = fechaObj.getFullYear();
     const month = String(fechaObj.getMonth() + 1).padStart(2, '0');
@@ -53,9 +52,13 @@ export const TablaAsistencia = () => {
     return `${year}-${month}-${day}`;
   };
 
+  const [cargaAcademica, setCargaAcademica] = useState([]);
+  const [seccionesDisponibles, setSeccionesDisponibles] = useState([]);
+  const [asignaturasDisponibles, setAsignaturasDisponibles] = useState([]);
+
   const [periodo, setPeriodo] = useState('1');
-  const [seccion, setSeccion] = useState('1° A Software');
-  const [asignatura, setAsignatura] = useState('Mod 1.1 DS');
+  const [seccion, setSeccion] = useState('');
+  const [asignatura, setAsignatura] = useState('');
   const [fecha, setFecha] = useState(obtenerFechaLocal());
 
   const [alumnos, setAlumnos] = useState([]);
@@ -64,8 +67,65 @@ export const TablaAsistencia = () => {
   const [modalAbierto, setModalAbierto] = useState(false);
   const [alumnosModal, setAlumnosModal] = useState([]);
 
+  // 1. Cargar la Carga Académica REAL del Docente desde el backend
+  useEffect(() => {
+    if (!docenteId) return;
+
+    fetch(`${API_BASE}/carga_academica.php?docente_id=${docenteId}`)
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.success && Array.isArray(data.carga) && data.carga.length > 0) {
+          setCargaAcademica(data.carga);
+
+          // Extraer nombres de secciones únicas asignadas a este docente
+          const seccionesUnicas = [...new Set(data.carga.map((item) => item.seccion))];
+          setSeccionesDisponibles(seccionesUnicas);
+
+          // Seleccionar la primera sección por defecto
+          const primeraSeccion = seccionesUnicas[0];
+          setSeccion(primeraSeccion);
+
+          // Filtrar asignaturas asociadas a esa sección
+          const materiasPrimeraSec = data.carga
+            .filter((item) => item.seccion === primeraSeccion)
+            .map((item) => item.asignatura);
+
+          setAsignaturasDisponibles(materiasPrimeraSec);
+          if (materiasPrimeraSec.length > 0) {
+            setAsignatura(materiasPrimeraSec[0]);
+          }
+        } else {
+          setCargaAcademica([]);
+          setSeccionesDisponibles([]);
+          setAsignaturasDisponibles([]);
+          setSeccion('');
+          setAsignatura('');
+        }
+      })
+      .catch((err) => console.error('Error al cargar la carga académica:', err));
+  }, [docenteId]);
+
+  // 2. Al cambiar la Sección en el combo, filtrar sus Asignaturas correspondientes
+  const handleSeccionChange = (nuevaSeccion) => {
+    setSeccion(nuevaSeccion);
+    const materiasDeSeccion = cargaAcademica
+      .filter((item) => item.seccion === nuevaSeccion)
+      .map((item) => item.asignatura);
+
+    setAsignaturasDisponibles(materiasDeSeccion);
+    if (materiasDeSeccion.length > 0) {
+      setAsignatura(materiasDeSeccion[0]);
+    } else {
+      setAsignatura('');
+    }
+  };
+
+  // 3. Consultar Alumnos y su Registro de Asistencia
   const cargarAsistencia = async () => {
-    if (!seccion) return;
+    if (!seccion || !asignatura) {
+      setAlumnos([]);
+      return;
+    }
     setCargando(true);
     try {
       const queryParams = new URLSearchParams({
@@ -75,7 +135,7 @@ export const TablaAsistencia = () => {
         fecha: fecha
       });
 
-      const res = await fetch(`${API_URL}/asistencia.php?${queryParams.toString()}`);
+      const res = await fetch(`${API_BASE}/asistencia.php?${queryParams.toString()}`);
       const data = await res.json();
 
       let lista = [];
@@ -139,22 +199,18 @@ export const TablaAsistencia = () => {
         }))
       };
 
-      const res = await fetch(`${API_URL}/guardar_asistencia.php`, {
+      const res = await fetch(`${API_BASE}/guardar_asistencia.php`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)
       });
 
-      const data = await res.json();
-      console.log('Respuesta backend al guardar:', data);
-
+      await res.json();
       setModalAbierto(false);
       await cargarAsistencia();
     } catch (error) {
       console.error('Error al guardar asistencia:', error);
-      alert('Error al guardar.');
+      alert('Error al guardar la asistencia.');
     } finally {
       setGuardando(false);
     }
@@ -180,7 +236,6 @@ export const TablaAsistencia = () => {
 
   return (
     <div style={{ padding: '24px', maxWidth: '1200px', margin: '0 auto', fontFamily: 'system-ui, sans-serif' }}>
-      {/* Caja Superior Filtros */}
       <div style={{ background: '#fff', border: '2px solid #00a8e8', borderRadius: '12px', padding: '20px', marginBottom: '24px', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05)' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', flexWrap: 'wrap', gap: '12px' }}>
           <button
@@ -233,11 +288,16 @@ export const TablaAsistencia = () => {
             </label>
             <select
               value={seccion}
-              onChange={(e) => setSeccion(e.target.value)}
+              onChange={(e) => handleSeccionChange(e.target.value)}
               style={{ width: '100%', border: '1px solid #ccc', borderRadius: '6px', padding: '8px', fontSize: '14px' }}
             >
-              <option value="1° A Software">1° A Software</option>
-              <option value="1° B Software">1° B Software</option>
+              {seccionesDisponibles.length === 0 ? (
+                <option value="">Sin secciones asignadas</option>
+              ) : (
+                seccionesDisponibles.map((sec) => (
+                  <option key={sec} value={sec}>{sec}</option>
+                ))
+              )}
             </select>
           </div>
 
@@ -250,14 +310,18 @@ export const TablaAsistencia = () => {
               onChange={(e) => setAsignatura(e.target.value)}
               style={{ width: '100%', border: '1px solid #ccc', borderRadius: '6px', padding: '8px', fontSize: '14px' }}
             >
-              <option value="Mod 1.1 DS">Mod 1.1 DS</option>
-              <option value="Mod 1.2 BD">Mod 1.2 BD</option>
+              {asignaturasDisponibles.length === 0 ? (
+                <option value="">Sin asignaturas</option>
+              ) : (
+                asignaturasDisponibles.map((asig) => (
+                  <option key={asig} value={asig}>{asig}</option>
+                ))
+              )}
             </select>
           </div>
         </div>
       </div>
 
-      {/* Tabla */}
       <div style={{ background: '#fff', border: '1px solid #e0e0e0', borderRadius: '8px', overflow: 'hidden' }}>
         {cargando ? (
           <div style={{ padding: '30px', textAlign: 'center', color: '#666' }}>Cargando registros...</div>
@@ -276,7 +340,7 @@ export const TablaAsistencia = () => {
               {alumnos.length === 0 ? (
                 <tr>
                   <td colSpan="5" style={{ padding: '24px', textAlign: 'center', color: '#999' }}>
-                    No hay registros disponibles.
+                    No hay registros disponibles para la selección actual.
                   </td>
                 </tr>
               ) : (
@@ -311,7 +375,6 @@ export const TablaAsistencia = () => {
         )}
       </div>
 
-      {/* Modal */}
       {modalAbierto && (
         <div
           style={{
