@@ -180,3 +180,42 @@ header div {
     min-height: 42px !important;
   }
 }
+
+/* =========================================================
+   AJUSTE RESPONSIVO GLOBAL Y PANEL DE ADMINISTRACIÓN
+   ========================================================= */
+
+/* 1. Desactivar el 'fixed' en pantallas pequeñas para evitar compresión de celdas */
+@media (max-width: 768px) {
+  .panel-card table {
+    table-layout: auto !important;
+  }
+
+  /* Contenedores de tablas en Admin */
+  .panel-card, .table-responsive {
+    overflow-x: auto !important;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  /* Ajuste de celdas para que no se encamen los textos en celulares */
+  .panel-card th, .panel-card td {
+    white-space: nowrap !important;
+    padding: 10px 12px !important;
+    font-size: 13px !important;
+  }
+
+  /* Ajuste de selectores y filtros del Admin en línea */
+  .panel-card .row, 
+  .panel-card .d-flex {
+    flex-direction: column !important;
+    align-items: stretch !important;
+    gap: 10px !important;
+  }
+
+  .panel-card .btn, 
+  .panel-card select, 
+  .panel-card input {
+    width: 100% !important;
+    margin-bottom: 5px;
+  }
+}
