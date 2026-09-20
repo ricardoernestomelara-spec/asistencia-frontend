@@ -279,6 +279,7 @@ export const TablaAsistencia = ({ docenteId }) => {
               <option value="1">1° Período</option>
               <option value="2">2° Período</option>
               <option value="3">3° Período</option>
+              <option value="4">4° Período</option>
             </select>
           </div>
 
