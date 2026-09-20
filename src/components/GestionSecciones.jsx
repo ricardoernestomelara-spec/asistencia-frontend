@@ -1,30 +1,35 @@
 import React, { useState, useEffect } from 'react';
-
-const API_BASE = import.meta.env.VITE_API_URL || 'https://asistencia-backend-qgim.onrender.com/api';
+import { API_BASE } from '../config';
 
 const GestionSecciones = () => {
   const [secciones, setSecciones] = useState([]);
   const [archivo, setArchivo] = useState(null);
   const [seccionSeleccionada, setSeccionSeleccionada] = useState('');
   const [procesandoCsv, setProcesandoCsv] = useState(false);
+  const [mensaje, setMensaje] = useState({ texto: '', tipo: '' });
 
-  // Cargar lista de secciones
+  // 1. Cargar lista real de secciones desde obtener_catalogos.php
   const cargarSecciones = () => {
-    fetch(`${API_BASE}/gestion_secciones.php`)
+    fetch(`${API_BASE}/obtener_catalogos.php`)
       .then((res) => res.json())
       .then((data) => {
         if (data.success) {
           setSecciones(data.secciones || []);
+        } else {
+          setMensaje({ texto: 'No se pudieron cargar las secciones.', tipo: 'danger' });
         }
       })
-      .catch((err) => console.error("Error al cargar secciones:", err));
+      .catch((err) => {
+        console.error("Error al cargar secciones:", err);
+        setMensaje({ texto: 'Error de conexión al obtener secciones.', tipo: 'danger' });
+      });
   };
 
   useEffect(() => {
     cargarSecciones();
   }, []);
 
-  // Función para vaciar alumnos de la sección
+  // 2. Función para vaciar alumnos de una sección
   const vaciarAlumnos = (seccionId, nombreSeccion) => {
     if (!window.confirm(`¿Seguro que deseas vaciar TODOS los alumnos cargados en '${nombreSeccion}'?`)) {
       return;
@@ -38,32 +43,36 @@ const GestionSecciones = () => {
       .then((res) => res.json())
       .then((data) => {
         if (data.success) {
-          alert(data.message);
+          setMensaje({ texto: data.message, tipo: 'success' });
           cargarSecciones();
         } else {
-          alert("Error: " + (data.message || "No se pudo vaciar la sección."));
+          setMensaje({ texto: data.message || 'No se pudo vaciar la sección.', tipo: 'danger' });
         }
       })
-      .catch((err) => console.error("Error al vaciar alumnos:", err));
+      .catch((err) => {
+        console.error("Error al vaciar alumnos:", err);
+        setMensaje({ texto: 'Error de red al vaciar la sección.', tipo: 'danger' });
+      });
   };
 
-  // Función para subir el CSV usando el backend existente: insertar_alumnos.php
+  // 3. Función para subir el CSV
   const handleSubirCSV = (e) => {
     e.preventDefault();
     if (!archivo) {
-      alert('Por favor selecciona un archivo CSV.');
+      setMensaje({ texto: 'Por favor selecciona un archivo CSV.', tipo: 'warning' });
       return;
     }
     if (!seccionSeleccionada) {
-      alert('Por favor selecciona la sección destino.');
+      setMensaje({ texto: 'Por favor selecciona la sección destino.', tipo: 'warning' });
       return;
     }
 
     setProcesandoCsv(true);
+    setMensaje({ texto: '', tipo: '' });
 
     const formData = new FormData();
     formData.append('archivo', archivo);
-    formData.append('seccion', seccionSeleccionada); // Envia el nombre que espera insertar_alumnos.php
+    formData.append('seccion', seccionSeleccionada);
 
     fetch(`${API_BASE}/insertar_alumnos.php`, {
       method: 'POST',
@@ -72,104 +81,111 @@ const GestionSecciones = () => {
       .then((res) => res.json())
       .then((data) => {
         if (data.success) {
-          alert(data.message || 'Carga masiva completada con éxito.');
+          setMensaje({ texto: data.message || 'Carga masiva completada con éxito.', tipo: 'success' });
           setArchivo(null);
+          setSeccionSeleccionada('');
           const input = document.getElementById('input-file-csv');
           if (input) input.value = '';
           cargarSecciones();
         } else {
-          alert("Error: " + (data.message || "No se pudo procesar el archivo."));
+          setMensaje({ texto: data.message || 'No se pudo procesar el archivo.', tipo: 'danger' });
         }
       })
       .catch((err) => {
         console.error("Error al subir CSV:", err);
-        alert("Error de conexión al subir el archivo.");
+        setMensaje({ texto: 'Error de conexión al subir el archivo.', tipo: 'danger' });
       })
       .finally(() => setProcesandoCsv(false));
   };
 
   return (
-    <div className="container mt-4">
-      {/* Zona de Carga Masiva (CSV) */}
-      <div className="card shadow-sm p-4 mb-4 border-primary">
-        <h4 className="fw-bold text-primary mb-2">📂 Carga Masiva de Alumnos (CSV)</h4>
-        <p className="text-muted small mb-3">
-          Selecciona la sección y sube el archivo CSV con los integrantes de la sección.
-        </p>
+    <div className="app-main-container">
+      <div className="panel-card">
 
-        <form onSubmit={handleSubirCSV} className="row g-3 align-items-end">
-          <div className="col-md-5">
-            <label className="form-label fw-bold small text-secondary">SECCIÓN DESTINO</label>
-            <select
-              className="form-select form-select-sm"
-              value={seccionSeleccionada}
-              onChange={(e) => setSeccionSeleccionada(e.target.value)}
-              required
-            >
-              <option value="">-- Seleccionar Sección --</option>
-              <option value="1° A Software">1° A Software</option>
-              <option value="1° B Software">1° B Software</option>
-              {secciones.map((sec) => (
-                <option key={sec.id || sec.nombre || sec.seccion} value={sec.nombre || sec.seccion}>
-                  {sec.nombre || sec.seccion}
-                </option>
-              ))}
-            </select>
+        {mensaje.texto && (
+          <div className={`alert alert-${mensaje.tipo} alert-dismissible fade show`} role="alert">
+            {mensaje.texto}
+            <button type="button" className="btn-close" onClick={() => setMensaje({ texto: '', tipo: '' })}></button>
           </div>
+        )}
 
-          <div className="col-md-4">
-            <label className="form-label fw-bold small text-secondary">ARCHIVO CSV</label>
-            <input
-              id="input-file-csv"
-              type="file"
-              accept=".csv"
-              className="form-control form-control-sm"
-              onChange={(e) => setArchivo(e.target.files[0])}
-              required
-            />
-          </div>
+        {/* Zona 1: Carga Masiva de Alumnos (CSV) */}
+        <div className="border border-info rounded-3 p-3 mb-4 bg-light">
+          <h5 className="fw-bold text-primary mb-1">📂 Carga Masiva de Alumnos (CSV)</h5>
+          <p className="text-muted small mb-3">
+            Selecciona la sección y sube el archivo CSV con los integrantes de la sección.
+          </p>
 
-          <div className="col-md-3">
-            <button
-              type="submit"
-              disabled={procesandoCsv}
-              className="btn btn-primary btn-sm w-100 fw-bold"
-            >
-              {procesandoCsv ? 'Subiendo...' : '📥 Cargar Alumnos'}
-            </button>
-          </div>
-        </form>
-      </div>
+          <form onSubmit={handleSubirCSV} className="row g-2 align-items-end">
+            <div className="col-md-5">
+              <label className="form-label fw-bold small text-secondary">SECCIÓN DESTINO</label>
+              <select
+                className="form-select"
+                value={seccionSeleccionada}
+                onChange={(e) => setSeccionSeleccionada(e.target.value)}
+                required
+              >
+                <option value="">-- Seleccionar Sección --</option>
+                {secciones.map((sec) => (
+                  <option key={sec.id} value={sec.nombre}>
+                    {sec.nombre}
+                  </option>
+                ))}
+              </select>
+            </div>
 
-      {/* Tabla Principal */}
-      <div className="card shadow-sm p-4">
-        <h3 className="fw-bold mb-1">Gestión de Secciones</h3>
-        <p className="text-muted">Administra las secciones registradas en el sistema.</p>
+            <div className="col-md-4">
+              <label className="form-label fw-bold small text-secondary">ARCHIVO CSV</label>
+              <input
+                id="input-file-csv"
+                type="file"
+                accept=".csv"
+                className="form-control"
+                onChange={(e) => setArchivo(e.target.files[0])}
+                required
+              />
+            </div>
+
+            <div className="col-md-3">
+              <button
+                type="submit"
+                disabled={procesandoCsv}
+                className="btn btn-info text-white w-100 fw-bold"
+              >
+                {procesandoCsv ? 'Subiendo...' : '📥 Cargar Alumnos'}
+              </button>
+            </div>
+          </form>
+        </div>
+
+        {/* Zona 2: Tabla Principal de Secciones */}
+        <h5 className="fw-bold text-secondary mb-1">Gestión de Secciones</h5>
+        <p className="text-muted small mb-3">Administra las secciones registradas en el sistema.</p>
         
-        <div className="table-responsive mt-3">
-          <table className="table table-hover align-middle">
-            <thead className="table-light">
+        <div className="table-responsive">
+          <table className="table table-bordered align-middle text-center">
+            <thead className="table-dark">
               <tr>
-                <th>#</th>
-                <th>Nombre de la Sección</th>
-                <th className="text-end">Acciones</th>
+                <th style={{ width: '15%' }}># / ID</th>
+                <th style={{ width: '60%' }}>NOMBRE DE LA SECCIÓN</th>
+                <th style={{ width: '25%' }}>ACCIONES</th>
               </tr>
             </thead>
             <tbody>
               {secciones.length === 0 ? (
                 <tr>
-                  <td colSpan="3" className="text-center py-3 text-muted">
+                  <td colSpan="3" className="text-muted py-3">
                     No hay secciones registradas o cargadas.
                   </td>
                 </tr>
               ) : (
                 secciones.map((sec, index) => (
                   <tr key={sec.id || index}>
-                    <td>{index + 1}</td>
-                    <td className="fw-semibold">{sec.nombre || sec.seccion}</td>
-                    <td className="text-end">
+                    <td>{sec.id || index + 1}</td>
+                    <td className="fw-bold text-start ps-3">{sec.nombre}</td>
+                    <td>
                       <button 
-                        onClick={() => vaciarAlumnos(sec.id, sec.nombre || sec.seccion)} 
+                        onClick={() => vaciarAlumnos(sec.id, sec.nombre)} 
                         className="btn btn-outline-danger btn-sm fw-bold"
                       >
                         Vaciar Alumnos
@@ -181,6 +197,7 @@ const GestionSecciones = () => {
             </tbody>
           </table>
         </div>
+
       </div>
     </div>
   );
