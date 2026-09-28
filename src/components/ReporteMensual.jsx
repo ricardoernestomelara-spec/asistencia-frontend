@@ -23,75 +23,59 @@ export const ReporteMensual = ({ docenteId, usuario = 'preza', esAdmin = false }
   const [secciones, setSecciones] = useState([]);
   const [seccionId, setSeccionId] = useState('');
 
+  const [asignaturas, setAsignaturas] = useState([]);
+  const [asignaturaId, setAsignaturaId] = useState('');
+
   const [reporte, setReporte] = useState([]);
   const [cargando, setCargando] = useState(false);
 
-  // Obtener Secciones
+  // Cargar Catalogos (Secciones y Asignaturas/Módulos)
   useEffect(() => {
-    const obtenerSecciones = async () => {
+    const obtenerCatalogos = async () => {
       try {
-        let endpoint = '';
-        const userActive = localStorage.getItem('usuario') || usuario;
-        const docIdActive = localStorage.getItem('docente_id') || docenteId;
-
-        if (esAdmin) {
-          endpoint = `${API_BASE}/obtener_catalogos.php`;
-        } else if (docIdActive) {
-          endpoint = `${API_BASE}/carga_academica.php?docente_id=${docIdActive}`;
-        } else {
-          endpoint = `${API_BASE}/carga_academica.php?usuario=${userActive}`;
-        }
-
-        const res = await fetch(endpoint);
+        const res = await fetch(`${API_BASE}/obtener_catalogos.php`);
         const data = await res.json();
 
-        let listaRaw = [];
-        if (Array.isArray(data)) {
-          listaRaw = data;
-        } else if (data.success && Array.isArray(data.carga)) {
-          listaRaw = data.carga;
-        } else if (data.success && Array.isArray(data.secciones)) {
-          listaRaw = data.secciones;
-        }
-
-        // Mapear y eliminar duplicados
-        const seccionesUnicas = [];
-        const idsProcesados = new Set();
-
-        listaRaw.forEach(item => {
-          const sId = item.seccion_id || item.id_seccion || item.id;
-          const sNombre = item.seccion || item.nombre_seccion || item.nombre;
-          
-          if (sId && !idsProcesados.has(sId)) {
-            idsProcesados.add(sId);
-            seccionesUnicas.push({ id: sId, nombre: sNombre });
+        if (data.success) {
+          setSecciones(data.secciones || []);
+          if (data.secciones && data.secciones.length > 0) {
+            setSeccionId(data.secciones[0].id || data.secciones[0].nombre);
           }
-        });
 
-        setSecciones(seccionesUnicas);
-        if (seccionesUnicas.length > 0) {
-          setSeccionId(seccionesUnicas[0].id);
+          setAsignaturas(data.asignaturas || []);
+          if (data.asignaturas && data.asignaturas.length > 0) {
+            setAsignaturaId(data.asignaturas[0].id || data.asignaturas[0].nombre);
+          }
         }
       } catch (err) {
-        console.error('Error al obtener secciones:', err);
+        console.error('Error al obtener catálogos para el reporte:', err);
       }
     };
 
-    obtenerSecciones();
-  }, [docenteId, usuario, esAdmin]);
+    obtenerCatalogos();
+  }, []);
 
-  // Cargar Reporte
+  // Cargar Reporte por Sección y Asignatura
   useEffect(() => {
     if (!seccionId) return;
 
     const cargarReporte = async () => {
       setCargando(true);
       try {
-        const res = await fetch(`${API_BASE}/reporte_mensual.php?seccion_id=${seccionId}&mes=${mes}&anio=${anio}`);
+        const queryParams = new URLSearchParams({
+          seccion_id: seccionId,
+          asignatura_id: asignaturaId,
+          mes: mes,
+          anio: anio
+        });
+
+        const res = await fetch(`${API_BASE}/reporte_mensual.php?${queryParams.toString()}`);
         const data = await res.json();
 
         if (data.success && Array.isArray(data.reporte)) {
           setReporte(data.reporte);
+        } else if (Array.isArray(data)) {
+          setReporte(data);
         } else {
           setReporte([]);
         }
@@ -104,7 +88,7 @@ export const ReporteMensual = ({ docenteId, usuario = 'preza', esAdmin = false }
     };
 
     cargarReporte();
-  }, [seccionId, mes, anio]);
+  }, [seccionId, asignaturaId, mes, anio]);
 
   return (
     <div style={{ padding: '20px', background: '#fff', borderRadius: '12px', border: '1px solid #e2e8f0', fontFamily: 'system-ui, sans-serif' }}>
@@ -114,25 +98,25 @@ export const ReporteMensual = ({ docenteId, usuario = 'preza', esAdmin = false }
           📊 Reporte Mensual de Inasistencias
         </h3>
         
+        {/* BOTÓN SIEMPRE HABILITADO PARA IMPRIMIR */}
         <button
           onClick={() => window.print()}
-          disabled={reporte.length === 0}
           style={{
-            padding: '8px 16px',
-            backgroundColor: reporte.length === 0 ? '#cbd5e1' : '#0284c7',
+            padding: '9px 18px',
+            backgroundColor: '#0284c7',
             color: '#fff',
             border: 'none',
             borderRadius: '6px',
             fontWeight: 'bold',
-            cursor: reporte.length === 0 ? 'not-allowed' : 'pointer'
+            cursor: 'pointer'
           }}
         >
           🖨️ Imprimir Reporte
         </button>
       </div>
 
-      {/* FILTROS */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '16px', marginBottom: '24px' }}>
+      {/* FILTROS CON ASIGNATURA / MÓDULO */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: '16px', marginBottom: '24px' }}>
         <div>
           <label style={{ display: 'block', fontSize: '11px', fontWeight: 'bold', color: '#64748b', marginBottom: '6px' }}>AÑO</label>
           <select value={anio} onChange={(e) => setAnio(e.target.value)} style={{ width: '100%', padding: '9px', borderRadius: '6px', border: '1px solid #cbd5e1' }}>
@@ -154,11 +138,26 @@ export const ReporteMensual = ({ docenteId, usuario = 'preza', esAdmin = false }
           <label style={{ display: 'block', fontSize: '11px', fontWeight: 'bold', color: '#64748b', marginBottom: '6px' }}>SECCIÓN</label>
           <select value={seccionId} onChange={(e) => setSeccionId(e.target.value)} style={{ width: '100%', padding: '9px', borderRadius: '6px', border: '1px solid #cbd5e1' }}>
             {secciones.length === 0 ? (
-              <option value="">Sin secciones disponibles</option>
+              <option value="">Sin secciones</option>
             ) : (
               secciones.map((sec) => (
-                <option key={sec.id} value={sec.id}>
+                <option key={sec.id || sec.nombre} value={sec.id || sec.nombre}>
                   {sec.nombre}
+                </option>
+              ))
+            )}
+          </select>
+        </div>
+
+        <div>
+          <label style={{ display: 'block', fontSize: '11px', fontWeight: 'bold', color: '#64748b', marginBottom: '6px' }}>ASIGNATURA / MÓDULO</label>
+          <select value={asignaturaId} onChange={(e) => setAsignaturaId(e.target.value)} style={{ width: '100%', padding: '9px', borderRadius: '6px', border: '1px solid #cbd5e1' }}>
+            {asignaturas.length === 0 ? (
+              <option value="">Todas las asignaturas</option>
+            ) : (
+              asignaturas.map((asig) => (
+                <option key={asig.id || asig.nombre} value={asig.id || asig.nombre}>
+                  {asig.nombre}
                 </option>
               ))
             )}
@@ -171,7 +170,7 @@ export const ReporteMensual = ({ docenteId, usuario = 'preza', esAdmin = false }
         <div style={{ textAlign: 'center', padding: '30px', color: '#64748b' }}>Cargando datos del reporte...</div>
       ) : reporte.length === 0 ? (
         <div style={{ textAlign: 'center', padding: '24px', color: '#94a3b8', background: '#f8fafc', borderRadius: '8px' }}>
-          No hay inasistencias registradas para esta sección en el mes seleccionado.
+          No hay registros de inasistencias para la selección en este mes.
         </div>
       ) : (
         <div style={{ overflowX: 'auto' }}>
@@ -196,7 +195,7 @@ export const ReporteMensual = ({ docenteId, usuario = 'preza', esAdmin = false }
                   <tr key={item.estudiante_id || idx} style={{ borderBottom: '1px solid #e2e8f0' }}>
                     <td style={{ padding: '10px', textAlign: 'center', color: '#64748b' }}>{idx + 1}</td>
                     <td style={{ padding: '10px', color: '#334155' }}>{item.nie || 'N/A'}</td>
-                    <td style={{ padding: '10px', fontWeight: 'bold', color: '#0f172a' }}>{item.estudiante}</td>
+                    <td style={{ padding: '10px', fontWeight: 'bold', color: '#0f172a' }}>{item.estudiante || `${item.apellidos || ''} ${item.nombres || ''}`}</td>
                     <td style={{ padding: '10px', textAlign: 'center', fontWeight: 'bold', color: '#16a34a' }}>{item.asistencias || 0}</td>
                     <td style={{ padding: '10px', textAlign: 'center', fontWeight: 'bold', color: '#dc2626' }}>{item.inasistencias || 0}</td>
                     <td style={{ padding: '10px', textAlign: 'center', fontWeight: 'bold', color: '#d97706' }}>{item.permisos || 0}</td>

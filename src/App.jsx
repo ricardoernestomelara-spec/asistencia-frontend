@@ -9,18 +9,15 @@ import GestionAsignaturas from './components/GestionAsignaturas';
 import GestionCargaAdmin from './components/GestionCargaAdmin';
 
 export default function App() {
-  // Manejo de Estado de Sesión con Persistencia Local
   const [usuario, setUsuario] = useState(() => localStorage.getItem('usuario') || null);
   const [rol, setRol] = useState(() => localStorage.getItem('rol') || 'docente');
   const [docenteId, setDocenteId] = useState(() => localStorage.getItem('docente_id') || localStorage.getItem('id_docente') || null);
 
-  // Estados del Formulario de Autenticación
   const [emailInput, setEmailInput] = useState('');
   const [passInput, setPassInput] = useState('');
   const [errorLogin, setErrorLogin] = useState('');
   const [cargando, setCargando] = useState(false);
 
-  // Vista activa por defecto según el rol ('asistencia', 'reporte', 'secciones', 'docentes', 'asignaturas', 'asignar', 'todo')
   const [tabActiva, setTabActiva] = useState('asistencia');
 
   const iniciarSesion = async (e) => {
@@ -35,7 +32,6 @@ export default function App() {
     setCargando(true);
 
     try {
-      // Uso explícito de API_BASE para evitar errores 404 de rutas locales
       const res = await fetch(`${API_BASE}/login.php`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -67,16 +63,14 @@ export default function App() {
         setErrorLogin(data.message || 'Usuario o contraseña incorrectos');
       }
     } catch (err) {
-      // Modulo de respaldo si hay un error en la respuesta del backend
       const esAdminCorreo = emailInput.toLowerCase().includes('admin');
       const userRol = esAdminCorreo ? 'admin' : 'docente';
-      const userNombre = emailInput;
 
-      localStorage.setItem('usuario', userNombre);
+      localStorage.setItem('usuario', emailInput);
       localStorage.setItem('rol', userRol);
       localStorage.setItem('docente_id', '1');
 
-      setUsuario(userNombre);
+      setUsuario(emailInput);
       setRol(userRol);
       setDocenteId('1');
 
@@ -96,7 +90,6 @@ export default function App() {
     setDocenteId(null);
   };
 
-  // 1. PANTALLA DE ACCESO (LOGIN)
   if (!usuario) {
     return (
       <div style={{
@@ -192,7 +185,6 @@ export default function App() {
 
   const esAdmin = rol === 'admin';
 
-  // Renderizador dinámico de vistas
   const renderContenido = () => {
     switch (tabActiva) {
       case 'secciones':
@@ -220,7 +212,6 @@ export default function App() {
     }
   };
 
-  // 2. ESTRUCTURA PRINCIPAL DE LA APLICACIÓN CON DASHBOARD LAYOUT
   return (
     <DashboardLayout
       usuario={usuario}
@@ -229,23 +220,24 @@ export default function App() {
       setTabActiva={setTabActiva}
       onLogout={cerrarSesion}
     >
-      {/* Botones de conmutación rápida para docente/admin */}
-      <div className="d-flex gap-2 mb-4 border-bottom pb-2">
-        <button
-          onClick={() => setTabActiva('asistencia')}
-          className={`btn fw-bold ${tabActiva === 'asistencia' ? 'btn-primary' : 'btn-outline-secondary'}`}
-        >
-          📋 Tomar / Modificar Asistencia
-        </button>
-        <button
-          onClick={() => setTabActiva('reporte')}
-          className={`btn fw-bold ${tabActiva === 'reporte' ? 'btn-primary' : 'btn-outline-secondary'}`}
-        >
-          📊 Reporte Mensual
-        </button>
-      </div>
+      {/* Pestañas solo visibles para Docentes en vista general */}
+      {!esAdmin && (
+        <div className="d-flex gap-2 mb-4 border-bottom pb-2">
+          <button
+            onClick={() => setTabActiva('asistencia')}
+            className={`btn fw-bold ${tabActiva === 'asistencia' ? 'btn-primary' : 'btn-outline-secondary'}`}
+          >
+            📋 Tomar / Modificar Asistencia
+          </button>
+          <button
+            onClick={() => setTabActiva('reporte')}
+            className={`btn fw-bold ${tabActiva === 'reporte' ? 'btn-primary' : 'btn-outline-secondary'}`}
+          >
+            📊 Reporte Mensual
+          </button>
+        </div>
+      )}
 
-      {/* Contenido Modular Renderizado */}
       {renderContenido()}
     </DashboardLayout>
   );
