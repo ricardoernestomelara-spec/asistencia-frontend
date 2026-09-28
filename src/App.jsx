@@ -4,35 +4,40 @@ import ReporteMensual from './components/ReporteMensual';
 
 export default function App() {
   const [pestanaActiva, setPestanaActiva] = useState('asistencia');
+  const [autenticado, setAutenticado] = useState(() => {
+    return Boolean(localStorage.getItem('usuario'));
+  });
 
   const usuarioSesion = localStorage.getItem('usuario') || 'preza';
   const docenteIdSesion = localStorage.getItem('docente_id') || localStorage.getItem('id_docente') || null;
 
   const cerrarSesion = () => {
     localStorage.clear();
+    setAutenticado(false);
     window.location.href = '/';
   };
 
   return (
     <div style={{ display: 'flex', minHeight: '100vh', backgroundColor: '#f8fafc', fontFamily: 'system-ui, sans-serif' }}>
       
-      {/* BARRA LATERAL (SIDEBAR FIJA AL 100% DE ALTO) */}
+      {/* BARRA LATERAL FIJA PANTALLA COMPLETA */}
       <aside style={{
         width: '240px',
         height: '100vh',
         position: 'fixed',
         left: 0,
         top: 0,
+        bottom: 0,
         backgroundColor: '#0f172a',
         color: '#fff',
         display: 'flex',
         flexDirection: 'column',
-        justify: 'space-between',
+        justifyContent: 'space-between',
         padding: '20px 16px',
         boxSizing: 'border-box',
-        zIndex: 1000
+        zIndex: 10000
       }}>
-        {/* PARTE SUPERIOR: LOGO Y SISTEMA */}
+        {/* PARTE SUPERIOR */}
         <div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '24px' }}>
             <div style={{
@@ -57,8 +62,8 @@ export default function App() {
           </div>
         </div>
 
-        {/* PARTE INFERIOR: USUARIO Y BOTÓN ABAJO DEL TODO */}
-        <div>
+        {/* PARTE INFERIOR (PEGADO ABAJO DEL TODO) */}
+        <div style={{ marginTop: 'auto' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '16px' }}>
             <div style={{
               width: '32px',
@@ -78,6 +83,7 @@ export default function App() {
 
           <button
             onClick={cerrarSesion}
+            type="button"
             style={{
               width: '100%',
               padding: '10px',
@@ -99,10 +105,10 @@ export default function App() {
         </div>
       </aside>
 
-      {/* CONTENIDO DERECHO CON MARGEN A LA IZQUIERDA PARA NO CHOCAR CON LA BARRA */}
-      <main style={{ marginLeft: '240px', flex: 1, padding: '24px', boxSizing: 'border-box', width: 'calc(100vw - 240px)' }}>
+      {/* CONTENIDO PRINCIPAL A LA DERECHA */}
+      <main style={{ marginLeft: '240px', flex: 1, padding: '24px', boxSizing: 'border-box', minHeight: '100vh', width: 'calc(100% - 240px)' }}>
         
-        {/* NAVEGACIÓN DE PESTAÑAS */}
+        {/* PESTAÑAS */}
         <div style={{ display: 'flex', gap: '8px', marginBottom: '20px', borderBottom: '2px solid #e2e8f0' }}>
           <button
             onClick={() => setPestanaActiva('asistencia')}
@@ -137,7 +143,7 @@ export default function App() {
           </button>
         </div>
 
-        {/* CONTENIDO DE LA PESTAÑA */}
+        {/* COMPONENTES */}
         {pestanaActiva === 'asistencia' ? (
           <TablaAsistencia docenteId={docenteIdSesion} usuario={usuarioSesion} />
         ) : (
