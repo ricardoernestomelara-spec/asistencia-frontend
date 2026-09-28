@@ -42,13 +42,14 @@ const CargaAcademica = () => {
     setCargando(true);
     setMensaje({ texto: '', tipo: '' });
 
-    fetch(`${API_BASE}/asignar_carga.php`, {
+    // Corrección de endpoint: 'guardar_carga.php' + conversión a entero (parseInt)
+    fetch(`${API_BASE}/guardar_carga.php`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        docente_id: docenteId,
-        seccion_id: seccionId,
-        asignatura_id: asignaturaId,
+        docente_id: parseInt(docenteId, 10),
+        seccion_id: parseInt(seccionId, 10),
+        asignatura_id: parseInt(asignaturaId, 10),
       }),
     })
       .then((res) => res.json())

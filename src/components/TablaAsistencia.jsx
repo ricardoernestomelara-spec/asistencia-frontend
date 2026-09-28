@@ -44,7 +44,7 @@ const OPCIONES_MOTIVO = [
   'Trabajo'
 ];
 
-export const TablaAsistencia = ({ docenteId }) => {
+export const TablaAsistencia = ({ docenteId, usuario }) => {
   const obtenerFechaLocal = (fechaObj = new Date()) => {
     const year = fechaObj.getFullYear();
     const month = String(fechaObj.getMonth() + 1).padStart(2, '0');
@@ -67,40 +67,72 @@ export const TablaAsistencia = ({ docenteId }) => {
   const [modalAbierto, setModalAbierto] = useState(false);
   const [alumnosModal, setAlumnosModal] = useState([]);
 
-  // Cargar Carga Académica del docente
+  // Cargar Carga Académica soportando tanto docenteId numérico como nombre de usuario
   useEffect(() => {
-    if (!docenteId) return;
+    const identificarDocenteYObtenerCarga = async () => {
+      let idFinal = docenteId;
 
-    fetch(`${API_BASE}/carga_academica.php?docente_id=${docenteId}`)
-      .then((res) => res.json())
-      .then((data) => {
-        if (data.success && Array.isArray(data.carga) && data.carga.length > 0) {
-          setCargaAcademica(data.carga);
-
-          const seccionesUnicas = [...new Set(data.carga.map((item) => item.seccion))];
-          setSeccionesDisponibles(seccionesUnicas);
-
-          const primeraSeccion = seccionesUnicas[0];
-          setSeccion(primeraSeccion);
-
-          const materiasPrimeraSec = data.carga
-            .filter((item) => item.seccion === primeraSeccion)
-            .map((item) => item.asignatura);
-
-          setAsignaturasDisponibles(materiasPrimeraSec);
-          if (materiasPrimeraSec.length > 0) {
-            setAsignatura(materiasPrimeraSec[0]);
+      // Si no hay ID numérico pero tenemos usuario/nombre
+      if (!idFinal && usuario) {
+        try {
+          const resCat = await fetch(`${API_BASE}/obtener_catalogos.php`);
+          const dataCat = await resCat.json();
+          if (dataCat.success && Array.isArray(dataCat.docentes)) {
+            const encontrado = dataCat.docentes.find(
+              (d) =>
+                (d.nombre && d.nombre.toLowerCase() === usuario.toLowerCase()) ||
+                (d.usuario && d.usuario.toLowerCase() === usuario.toLowerCase()) ||
+                (d.email && d.email.toLowerCase() === usuario.toLowerCase())
+            );
+            if (encontrado) idFinal = encontrado.id;
           }
-        } else {
-          setCargaAcademica([]);
-          setSeccionesDisponibles([]);
-          setAsignaturasDisponibles([]);
-          setSeccion('');
-          setAsignatura('');
+        } catch (err) {
+          console.error("Error identificando al docente por catálogo:", err);
         }
-      })
-      .catch((err) => console.error('Error al cargar la carga académica:', err));
-  }, [docenteId]);
+      }
+
+      if (!idFinal) {
+        setCargaAcademica([]);
+        setSeccionesDisponibles([]);
+        setAsignaturasDisponibles([]);
+        setSeccion('');
+        setAsignatura('');
+        return;
+      }
+
+      fetch(`${API_BASE}/carga_academica.php?docente_id=${idFinal}`)
+        .then((res) => res.json())
+        .then((data) => {
+          if (data.success && Array.isArray(data.carga) && data.carga.length > 0) {
+            setCargaAcademica(data.carga);
+
+            const seccionesUnicas = [...new Set(data.carga.map((item) => item.seccion))];
+            setSeccionesDisponibles(seccionesUnicas);
+
+            const primeraSeccion = seccionesUnicas[0];
+            setSeccion(primeraSeccion);
+
+            const materiasPrimeraSec = data.carga
+              .filter((item) => item.seccion === primeraSeccion)
+              .map((item) => item.asignatura);
+
+            setAsignaturasDisponibles(materiasPrimeraSec);
+            if (materiasPrimeraSec.length > 0) {
+              setAsignatura(materiasPrimeraSec[0]);
+            }
+          } else {
+            setCargaAcademica([]);
+            setSeccionesDisponibles([]);
+            setAsignaturasDisponibles([]);
+            setSeccion('');
+            setAsignatura('');
+          }
+        })
+        .catch((err) => console.error('Error al cargar la carga académica:', err));
+    };
+
+    identificarDocenteYObtenerCarga();
+  }, [docenteId, usuario]);
 
   const handleSeccionChange = (nuevaSeccion) => {
     setSeccion(nuevaSeccion);
@@ -332,7 +364,7 @@ export const TablaAsistencia = ({ docenteId }) => {
         </div>
       ) : (
         <div style={{ background: '#fff', border: '1px solid #e0e0e0', borderRadius: '8px', overflow: 'hidden' }}>
-          {/* VISTA EN TARJETAS PARA PANTALLAS PEQUEÑAS / MÓVILES */}
+          {/* VISTA MÓVIL */}
           <div className="d-block d-md-none">
             {alumnos.map((est, idx) => {
               const estadoActual = est.asistencia || est.estado || 'Asistió';
@@ -378,7 +410,7 @@ export const TablaAsistencia = ({ docenteId }) => {
             })}
           </div>
 
-          {/* VISTA EN TABLA TRADICIONAL PARA COMPUTADORAS Y TABLETS */}
+          {/* VISTA ESCRITORIO */}
           <div className="d-none d-md-block" style={{ overflowX: 'auto' }}>
             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '14px', textAlign: 'left' }}>
               <thead>
@@ -610,7 +642,7 @@ export const TablaAsistencia = ({ docenteId }) => {
               </div>
             </div>
 
-            <div style={{ padding: '16px 20px', borderTop: '1px solid #eee', display: 'flex', justifyContent: 'flex-end', gap: '10px', background: '#fafafa' }}>
+            <div style={{ padding: '16px 20px', borderTop: '1px solid #eee', display: 'flex', justify: 'flex-end', gap: '10px', background: '#fafafa' }}>
               <button
                 onClick={() => setModalAbierto(false)}
                 style={{ padding: '10px 18px', border: '1px solid #ccc', background: '#fff', borderRadius: '6px', cursor: 'pointer' }}
