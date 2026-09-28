@@ -58,7 +58,6 @@ const DashboardLayout = ({ usuario, rol, tabActiva, setTabActiva, onLogout, chil
     }
   ];
 
-  // Si usuario es nulo, indefinido o la palabra "Usuario", mostramos "Administrador" (si es admin)
   const esUsuarioGenerico = !usuario || usuario.toLowerCase() === 'usuario';
   const nombreMostrar = esUsuarioGenerico 
     ? (rol === 'admin' ? 'Administrador' : 'Usuario') 
@@ -117,21 +116,20 @@ const DashboardLayout = ({ usuario, rol, tabActiva, setTabActiva, onLogout, chil
         <div className="sidebar-footer pt-3 mt-auto border-top border-secondary border-opacity-25" style={{ backgroundColor: 'transparent' }}>
           <div className="d-flex align-items-center gap-2 mb-3 px-1">
             
-            {/* Avatar circular corregido (Fondo azul fuerte con letra A blanca) */}
-            <div 
-                className="rounded-circle d-flex align-items-center justify-content-center fw-bold flex-shrink-0"
-                style={{ 
-                    width: '36px', 
-                    height: '36px', 
-                    backgroundColor: '#2563eb', 
-                    color: '#ffffff',
-                    fontSize: '0.95rem',
-                    background: '#2563eb !important',
-                    WebkitTextFillColor: '#ffffff'
-                }}
-                >
-                {inicialMostrar}
-            </div>
+            {/* Elemento Avatar aislado en etiqueta span para evitar conflicto CSS */}
+            <span 
+              className="d-flex align-items-center justify-content-center fw-bold flex-shrink-0"
+              style={{ 
+                width: '36px', 
+                height: '36px', 
+                borderRadius: '50%',
+                backgroundColor: '#2563eb', 
+                color: '#ffffff',
+                fontSize: '0.95rem' 
+              }}
+            >
+              {inicialMostrar}
+            </span>
 
             <div className="text-truncate fw-semibold" style={{ color: '#ffffff', fontSize: '0.9rem' }}>
               {nombreMostrar}
