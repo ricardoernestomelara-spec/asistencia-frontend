@@ -16,7 +16,7 @@ const MESES = [
   { id: '12', nombre: 'Diciembre' },
 ];
 
-export const ReporteMensual = ({ docenteId, usuario = 'preza', esAdmin = false }) => {
+export const ReporteMensual = ({ docenteId, usuario = 'Docente', esAdmin = false }) => {
   const [anio, setAnio] = useState(new Date().getFullYear().toString());
   const [mes, setMes] = useState(String(new Date().getMonth() + 1).padStart(2, '0'));
   
@@ -29,7 +29,7 @@ export const ReporteMensual = ({ docenteId, usuario = 'preza', esAdmin = false }
   const [reporte, setReporte] = useState([]);
   const [cargando, setCargando] = useState(false);
 
-  // Cargar Catalogos (Secciones y Asignaturas/Módulos)
+  // Obtener catálogos iniciales
   useEffect(() => {
     const obtenerCatalogos = async () => {
       try {
@@ -48,14 +48,14 @@ export const ReporteMensual = ({ docenteId, usuario = 'preza', esAdmin = false }
           }
         }
       } catch (err) {
-        console.error('Error al obtener catálogos para el reporte:', err);
+        console.error('Error al obtener catálogos:', err);
       }
     };
 
     obtenerCatalogos();
   }, []);
 
-  // Cargar Reporte por Sección y Asignatura
+  // Cargar datos de reporte cada vez que cambia un filtro
   useEffect(() => {
     if (!seccionId) return;
 
@@ -80,7 +80,7 @@ export const ReporteMensual = ({ docenteId, usuario = 'preza', esAdmin = false }
           setReporte([]);
         }
       } catch (err) {
-        console.error('Error al obtener reporte:', err);
+        console.error('Error al cargar reporte:', err);
         setReporte([]);
       } finally {
         setCargando(false);
@@ -90,15 +90,70 @@ export const ReporteMensual = ({ docenteId, usuario = 'preza', esAdmin = false }
     cargarReporte();
   }, [seccionId, asignaturaId, mes, anio]);
 
+  // Nombres descriptivos para el encabezado impreso
+  const nombreMes = MESES.find(m => m.id === mes)?.nombre || mes;
+  const nombreSeccion = secciones.find(s => String(s.id) === String(seccionId) || s.nombre === seccionId)?.nombre || seccionId;
+  const nombreAsignatura = asignaturas.find(a => String(a.id) === String(asignaturaId) || a.nombre === asignaturaId)?.nombre || 'Todas las Asignaturas';
+
   return (
     <div style={{ padding: '20px', background: '#fff', borderRadius: '12px', border: '1px solid #e2e8f0', fontFamily: 'system-ui, sans-serif' }}>
       
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', flexWrap: 'wrap', gap: '12px' }}>
+      {/* ESTILOS EXCLUSIVOS PARA IMPRESIÓN (PDF / PAPEL) */}
+      <style>{`
+        @media print {
+          /* Ocultar elementos de la interfaz interactiva */
+          aside, nav, .no-print, button, .sidebar, header {
+            display: none !important;
+          }
+          body {
+            background: #fff !important;
+            padding: 0 !important;
+            margin: 0 !important;
+          }
+          .print-header {
+            display: block !important;
+            margin-bottom: 20px;
+            border-bottom: 2px solid #000;
+            padding-bottom: 10px;
+          }
+          .reporte-container {
+            border: none !important;
+            padding: 0 !important;
+          }
+          table {
+            width: 100% !important;
+            border-collapse: collapse !important;
+            font-size: 11pt !important;
+          }
+          th, td {
+            border: 1px solid #333 !important;
+            padding: 6px 8px !important;
+          }
+        }
+      `}</style>
+
+      {/* ENCABEZADO FORMAL SÓLO VISIBLE AL IMPRIMIR */}
+      <div className="print-header" style={{ display: 'none' }}>
+        <h2 style={{ margin: '0 0 4px 0', textAlign: 'center', fontSize: '18px', textTransform: 'uppercase' }}>
+          CENTRO EDUCATIVO - REGISTRO DE ASISTENCIA
+        </h2>
+        <h3 style={{ margin: '0 0 12px 0', textAlign: 'center', fontSize: '14px', color: '#333' }}>
+          REPORTE MENSUAL DE ASISTENCIA E INASISTENCIAS
+        </h3>
+        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', marginTop: '10px' }}>
+          <div><strong>Sección:</strong> {nombreSeccion}</div>
+          <div><strong>Asignatura/Módulo:</strong> {nombreAsignatura}</div>
+          <div><strong>Período:</strong> {nombreMes} - {anio}</div>
+          <div><strong>Docente:</strong> {usuario}</div>
+        </div>
+      </div>
+
+      {/* ENCABEZADO DE LA PANTALLA (SE OCULTA AL IMPRIMIR) */}
+      <div className="no-print" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', flexWrap: 'wrap', gap: '12px' }}>
         <h3 style={{ margin: 0, fontSize: '18px', fontWeight: 'bold', color: '#1e293b' }}>
           📊 Reporte Mensual de Inasistencias
         </h3>
         
-        {/* BOTÓN SIEMPRE HABILITADO PARA IMPRIMIR */}
         <button
           onClick={() => window.print()}
           style={{
@@ -111,12 +166,12 @@ export const ReporteMensual = ({ docenteId, usuario = 'preza', esAdmin = false }
             cursor: 'pointer'
           }}
         >
-          🖨️ Imprimir Reporte
+          🖨️ Imprimir Reporte (PDF)
         </button>
       </div>
 
-      {/* FILTROS CON ASIGNATURA / MÓDULO */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: '16px', marginBottom: '24px' }}>
+      {/* FILTROS DE BÚSQUEDA (SE OCULTAN AL IMPRIMIR) */}
+      <div className="no-print" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: '16px', marginBottom: '24px' }}>
         <div>
           <label style={{ display: 'block', fontSize: '11px', fontWeight: 'bold', color: '#64748b', marginBottom: '6px' }}>AÑO</label>
           <select value={anio} onChange={(e) => setAnio(e.target.value)} style={{ width: '100%', padding: '9px', borderRadius: '6px', border: '1px solid #cbd5e1' }}>
@@ -165,48 +220,53 @@ export const ReporteMensual = ({ docenteId, usuario = 'preza', esAdmin = false }
         </div>
       </div>
 
-      {/* TABLA DE RESULTADOS */}
+      {/* RESULTADOS / TABLA FORMAL DE ASISTENCIA */}
       {cargando ? (
-        <div style={{ textAlign: 'center', padding: '30px', color: '#64748b' }}>Cargando datos del reporte...</div>
+        <div style={{ textAlign: 'center', padding: '30px', color: '#64748b' }}>Cargando información del reporte...</div>
       ) : reporte.length === 0 ? (
         <div style={{ textAlign: 'center', padding: '24px', color: '#94a3b8', background: '#f8fafc', borderRadius: '8px' }}>
-          No hay registros de inasistencias para la selección en este mes.
+          No existen registros cargados ni estudiantes en la asignatura/sección seleccionada para este mes.
         </div>
       ) : (
         <div style={{ overflowX: 'auto' }}>
           <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px', textAlign: 'left' }}>
             <thead>
               <tr style={{ background: '#f1f5f9', borderBottom: '2px solid #cbd5e1' }}>
-                <th style={{ padding: '10px', textAlign: 'center', width: '40px' }}>#</th>
+                <th style={{ padding: '10px', textAlign: 'center', width: '40px' }}>N°</th>
                 <th style={{ padding: '10px' }}>NIE</th>
                 <th style={{ padding: '10px' }}>ESTUDIANTE</th>
-                <th style={{ padding: '10px', textAlign: 'center', color: '#16a34a' }}>ASISTIÓ</th>
-                <th style={{ padding: '10px', textAlign: 'center', color: '#dc2626' }}>FALTAS</th>
+                <th style={{ padding: '10px', textAlign: 'center', color: '#16a34a' }}>ASISTENCIAS</th>
+                <th style={{ padding: '10px', textAlign: 'center', color: '#dc2626' }}>INASISTENCIAS</th>
                 <th style={{ padding: '10px', textAlign: 'center', color: '#d97706' }}>PERMISOS</th>
-                <th style={{ padding: '10px', textAlign: 'center' }}>% FALTAS</th>
+                <th style={{ padding: '10px', textAlign: 'center' }}>% INASISTENCIAS</th>
               </tr>
             </thead>
             <tbody>
               {reporte.map((item, idx) => {
-                const totalClases = Number(item.asistencias || 0) + Number(item.inasistencias || 0) + Number(item.permisos || 0);
-                const pctFaltas = totalClases > 0 ? ((item.inasistencias / totalClases) * 100).toFixed(1) : 0;
+                const asist = Number(item.asistencias || 0);
+                const inasist = Number(item.inasistencias || 0);
+                const perm = Number(item.permisos || 0);
+                const totalClases = asist + inasist + perm;
+                const pctFaltas = totalClases > 0 ? ((inasist / totalClases) * 100).toFixed(1) : '0.0';
 
                 return (
                   <tr key={item.estudiante_id || idx} style={{ borderBottom: '1px solid #e2e8f0' }}>
                     <td style={{ padding: '10px', textAlign: 'center', color: '#64748b' }}>{idx + 1}</td>
                     <td style={{ padding: '10px', color: '#334155' }}>{item.nie || 'N/A'}</td>
-                    <td style={{ padding: '10px', fontWeight: 'bold', color: '#0f172a' }}>{item.estudiante || `${item.apellidos || ''} ${item.nombres || ''}`}</td>
-                    <td style={{ padding: '10px', textAlign: 'center', fontWeight: 'bold', color: '#16a34a' }}>{item.asistencias || 0}</td>
-                    <td style={{ padding: '10px', textAlign: 'center', fontWeight: 'bold', color: '#dc2626' }}>{item.inasistencias || 0}</td>
-                    <td style={{ padding: '10px', textAlign: 'center', fontWeight: 'bold', color: '#d97706' }}>{item.permisos || 0}</td>
+                    <td style={{ padding: '10px', fontWeight: 'bold', color: '#0f172a' }}>
+                      {item.estudiante || `${item.apellidos || ''} ${item.nombres || ''}`}
+                    </td>
+                    <td style={{ padding: '10px', textAlign: 'center', fontWeight: 'bold', color: '#16a34a' }}>{asist}</td>
+                    <td style={{ padding: '10px', textAlign: 'center', fontWeight: 'bold', color: '#dc2626' }}>{inasist}</td>
+                    <td style={{ padding: '10px', textAlign: 'center', fontWeight: 'bold', color: '#d97706' }}>{perm}</td>
                     <td style={{ padding: '10px', textAlign: 'center' }}>
                       <span style={{
                         padding: '3px 8px',
                         borderRadius: '12px',
                         fontWeight: 'bold',
                         fontSize: '11px',
-                        backgroundColor: pctFaltas > 15 ? '#fee2e2' : '#e2e8f0',
-                        color: pctFaltas > 15 ? '#991b1b' : '#334155'
+                        backgroundColor: Number(pctFaltas) > 15 ? '#fee2e2' : '#e2e8f0',
+                        color: Number(pctFaltas) > 15 ? '#991b1b' : '#334155'
                       }}>
                         {pctFaltas}%
                       </span>
