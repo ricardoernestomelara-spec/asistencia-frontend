@@ -31,17 +31,20 @@ export const ReporteMensual = ({ docenteId, usuario = 'preza', esAdmin = false }
     const obtenerSecciones = async () => {
       try {
         let endpoint = '';
+        const userActive = localStorage.getItem('usuario') || usuario;
+        const docIdActive = localStorage.getItem('docente_id') || docenteId;
+
         if (esAdmin) {
           endpoint = `${API_BASE}/obtener_catalogos.php`;
+        } else if (docIdActive) {
+          endpoint = `${API_BASE}/carga_academica.php?docente_id=${docIdActive}`;
         } else {
-          const userGuardado = localStorage.getItem('usuario') || usuario;
-          endpoint = `${API_BASE}/carga_academica.php?usuario=${userGuardado}`;
+          endpoint = `${API_BASE}/carga_academica.php?usuario=${userActive}`;
         }
 
         const res = await fetch(endpoint);
         const data = await res.json();
 
-        // Evaluar formatos que puede retornar la API
         let listaRaw = [];
         if (Array.isArray(data)) {
           listaRaw = data;
@@ -51,7 +54,7 @@ export const ReporteMensual = ({ docenteId, usuario = 'preza', esAdmin = false }
           listaRaw = data.secciones;
         }
 
-        // Extraer secciones únicas
+        // Mapear y eliminar duplicados
         const seccionesUnicas = [];
         const idsProcesados = new Set();
 
@@ -77,7 +80,7 @@ export const ReporteMensual = ({ docenteId, usuario = 'preza', esAdmin = false }
     obtenerSecciones();
   }, [docenteId, usuario, esAdmin]);
 
-  // Cargar Reporte por Sección
+  // Cargar Reporte
   useEffect(() => {
     if (!seccionId) return;
 
@@ -128,7 +131,7 @@ export const ReporteMensual = ({ docenteId, usuario = 'preza', esAdmin = false }
         </button>
       </div>
 
-      {/* Selectores */}
+      {/* FILTROS */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '16px', marginBottom: '24px' }}>
         <div>
           <label style={{ display: 'block', fontSize: '11px', fontWeight: 'bold', color: '#64748b', marginBottom: '6px' }}>AÑO</label>
@@ -163,9 +166,9 @@ export const ReporteMensual = ({ docenteId, usuario = 'preza', esAdmin = false }
         </div>
       </div>
 
-      {/* Tabla del Reporte */}
+      {/* TABLA DE RESULTADOS */}
       {cargando ? (
-        <div style={{ textAlign: 'center', padding: '30px', color: '#64748b' }}>Cargando reporte...</div>
+        <div style={{ textAlign: 'center', padding: '30px', color: '#64748b' }}>Cargando datos del reporte...</div>
       ) : reporte.length === 0 ? (
         <div style={{ textAlign: 'center', padding: '24px', color: '#94a3b8', background: '#f8fafc', borderRadius: '8px' }}>
           No hay inasistencias registradas para esta sección en el mes seleccionado.

@@ -6,7 +6,7 @@ export default function App() {
   const [pestanaActiva, setPestanaActiva] = useState('asistencia');
 
   const usuarioSesion = localStorage.getItem('usuario') || 'preza';
-  const docenteIdSesion = localStorage.getItem('docente_id') || null;
+  const docenteIdSesion = localStorage.getItem('docente_id') || localStorage.getItem('id_docente') || null;
 
   const cerrarSesion = () => {
     localStorage.clear();
@@ -14,26 +14,22 @@ export default function App() {
   };
 
   return (
-    <div style={{ display: 'flex', minHeight: '100vh', backgroundColor: '#f8fafc', fontFamily: 'system-ui, sans-serif' }}>
+    <div style={{ display: 'flex', width: '100vw', minHeight: '100vh', backgroundColor: '#f8fafc', fontFamily: 'system-ui, sans-serif' }}>
       
-      {/* BARRA LATERAL FIJA */}
+      {/* BARRA LATERAL (SIDEBAR) */}
       <aside style={{
         width: '240px',
-        height: '100vh',
-        position: 'fixed',
-        left: 0,
-        top: 0,
+        minWidth: '240px',
         backgroundColor: '#0f172a',
         color: '#fff',
         display: 'flex',
         flexDirection: 'column',
         justify: 'space-between',
         padding: '20px 16px',
-        boxSizing: 'border-box',
-        zIndex: 100
+        boxSizing: 'border-box'
       }}>
         <div>
-          {/* Header */}
+          {/* LOGO Y SISTEMA */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '24px' }}>
             <div style={{
               width: '36px',
@@ -57,7 +53,7 @@ export default function App() {
           </div>
         </div>
 
-        {/* Footer Sidebar (Usuario y Cerrar Sesión abajo) */}
+        {/* PIE DE SIDEBAR (USUARIO Y CERRAR SESIÓN) */}
         <div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '16px' }}>
             <div style={{
@@ -99,10 +95,10 @@ export default function App() {
         </div>
       </aside>
 
-      {/* CONTENIDO DERECHO */}
-      <main style={{ marginLeft: '24px', flex: 1, padding: '24px' }}>
+      {/* CONTENIDO PRINCIPAL */}
+      <main style={{ flex: 1, padding: '24px', overflowX: 'auto', boxSizing: 'border-box' }}>
         
-        {/* PESTAÑAS DE NAVEGACIÓN */}
+        {/* NAVEGACIÓN PESTAÑAS */}
         <div style={{ display: 'flex', gap: '8px', marginBottom: '20px', borderBottom: '2px solid #e2e8f0' }}>
           <button
             onClick={() => setPestanaActiva('asistencia')}
