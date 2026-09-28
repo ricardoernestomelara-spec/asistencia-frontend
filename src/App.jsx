@@ -1,80 +1,60 @@
 import React, { useState } from 'react';
-import Login from './components/Login';
-import DashboardLayout from './components/DashboardLayout';
 import TablaAsistencia from './components/TablaAsistencia';
-import CargaAcademica from './components/CargaAcademica';
-import GestionDocentes from './components/GestionDocentes';
-import GestionSecciones from './components/GestionSecciones';
-import GestionAsignaturas from './components/GestionAsignaturas';
-import GestionCargaAdmin from './components/GestionCargaAdmin';
+import ReporteMensual from './components/ReporteMensual';
 
-function App() {
-  const [usuario, setUsuario] = useState(localStorage.getItem('usuario') || null);
-  const [rol, setRol] = useState(localStorage.getItem('rol') || null);
-
-  const getInitialTab = (rolUsuario) => {
-    return rolUsuario === 'docente' ? 'asistencia' : 'secciones';
-  };
-
-  const [tabActiva, setTabActiva] = useState(() => {
-    const savedRol = localStorage.getItem('rol');
-    return getInitialTab(savedRol);
-  });
-
-  const handleLogin = (user, userRol) => {
-    let nombreFinal = 'Usuario';
-    let rolFinal = userRol || 'admin';
-
-    if (typeof user === 'object' && user !== null) {
-      // Extrae el nombre buscando en todas las propiedades comunes que suele enviar la API
-      nombreFinal = user.nombre || user.usuario || user.user || user.name || user.email || 'Usuario';
-      rolFinal = user.rol || userRol || 'admin';
-    } else if (typeof user === 'string') {
-      nombreFinal = user;
-    }
-
-    setUsuario(nombreFinal);
-    setRol(rolFinal);
-    setTabActiva(getInitialTab(rolFinal));
-
-    localStorage.setItem('usuario', nombreFinal);
-    localStorage.setItem('rol', rolFinal);
-  };
-
-  const handleLogout = () => {
-    setUsuario(null);
-    setRol(null);
-    localStorage.removeItem('usuario');
-    localStorage.removeItem('rol');
-  };
-
-  if (!usuario) {
-    return <Login onLogin={handleLogin} login={handleLogin} setUsuario={handleLogin} />;
-  }
-
-  const esDocente = rol === 'docente';
+export const AsistenciaVistaPrincipal = ({ docenteId, usuario }) => {
+  // Estado para controlar qué pestaña está activa ('asistencia' o 'reporte')
+  const [pestanaActiva, setPestanaActiva] = useState('asistencia');
 
   return (
-    <DashboardLayout 
-      usuario={usuario} 
-      rol={rol} 
-      tabActiva={tabActiva} 
-      setTabActiva={setTabActiva} 
-      onLogout={handleLogout}
-    >
-      {(tabActiva === 'asistencia' || esDocente) && <TablaAsistencia usuario={usuario} rol={rol} />}
+    <div style={{ padding: '16px', maxWidth: '1200px', margin: '0 auto' }}>
+      
+      {/* BOTONES DE NAVEGACIÓN (PESTAÑAS) */}
+      <div style={{ display: 'flex', gap: '8px', marginBottom: '20px', borderBottom: '2px solid #e2e8f0' }}>
+        <button
+          onClick={() => setPestanaActiva('asistencia')}
+          style={{
+            padding: '10px 20px',
+            border: 'none',
+            borderBottom: pestanaActiva === 'asistencia' ? '3px solid #00a8e8' : '3px solid transparent',
+            background: 'none',
+            fontWeight: 'bold',
+            fontSize: '15px',
+            color: pestanaActiva === 'asistencia' ? '#00a8e8' : '#64748b',
+            cursor: 'pointer',
+            transition: 'all 0.2s ease'
+          }}
+        >
+          📋 Tomar / Modificar Asistencia
+        </button>
 
-      {!esDocente && (
-        <>
-          {tabActiva === 'asignar' && <CargaAcademica />}
-          {tabActiva === 'docentes' && <GestionDocentes />}
-          {tabActiva === 'secciones' && <GestionSecciones />}
-          {tabActiva === 'asignaturas' && <GestionAsignaturas />}
-          {tabActiva === 'todo' && <GestionCargaAdmin />}
-        </>
+        <button
+          onClick={() => setPestanaActiva('reporte')}
+          style={{
+            padding: '10px 20px',
+            border: 'none',
+            borderBottom: pestanaActiva === 'reporte' ? '3px solid #00a8e8' : '3px solid transparent',
+            background: 'none',
+            fontWeight: 'bold',
+            fontSize: '15px',
+            color: pestanaActiva === 'reporte' ? '#00a8e8' : '#64748b',
+            cursor: 'pointer',
+            transition: 'all 0.2s ease'
+          }}
+        >
+          📊 Reporte Mensual
+        </button>
+      </div>
+
+      {/* RENDERIZADO CONDICIONAL DE LA VISTA */}
+      {pestanaActiva === 'asistencia' ? (
+        <TablaAsistencia docenteId={docenteId} usuario={usuario} />
+      ) : (
+        <ReporteMensual docenteId={docenteId} esAdmin={false} />
       )}
-    </DashboardLayout>
-  );
-}
 
-export default App;
+    </div>
+  );
+};
+
+export default AsistenciaVistaPrincipal;
