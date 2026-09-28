@@ -67,12 +67,16 @@ export const TablaAsistencia = ({ docenteId, usuario }) => {
   const [modalAbierto, setModalAbierto] = useState(false);
   const [alumnosModal, setAlumnosModal] = useState([]);
 
+  // Saber si ya se tomó asistencia al menos a un alumno para esta fecha/materia
+  const yaExisteAsistencia = alumnos.some(
+    (est) => est.asistencia && est.asistencia !== 'Pendiente'
+  );
+
   // Cargar Carga Académica soportando tanto docenteId numérico como nombre de usuario
   useEffect(() => {
     const identificarDocenteYObtenerCarga = async () => {
       let idFinal = docenteId;
 
-      // Si no hay ID numérico pero tenemos usuario/nombre
       if (!idFinal && usuario) {
         try {
           const resCat = await fetch(`${API_BASE}/obtener_catalogos.php`);
@@ -266,11 +270,12 @@ export const TablaAsistencia = ({ docenteId, usuario }) => {
       {/* Panel de Filtros */}
       <div style={{ background: '#fff', border: '2px solid #00a8e8', borderRadius: '12px', padding: '16px', marginBottom: '20px', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05)' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', flexWrap: 'wrap', gap: '12px' }}>
+          {/* BOTÓN ADAPTATIVO: Muestra 'Modificar' si ya hay registros */}
           <button
             onClick={handleAbrirModal}
             disabled={alumnos.length === 0}
             style={{
-              backgroundColor: alumnos.length === 0 ? '#cccccc' : '#00a8e8',
+              backgroundColor: alumnos.length === 0 ? '#cccccc' : yaExisteAsistencia ? '#f59e0b' : '#00a8e8',
               color: '#ffffff',
               border: 'none',
               padding: '12px 24px',
@@ -279,10 +284,11 @@ export const TablaAsistencia = ({ docenteId, usuario }) => {
               fontSize: '15px',
               width: '100%',
               maxWidth: '280px',
-              cursor: alumnos.length === 0 ? 'not-allowed' : 'pointer'
+              cursor: alumnos.length === 0 ? 'not-allowed' : 'pointer',
+              transition: 'all 0.2s ease'
             }}
           >
-            + Tomar Asistencia
+            {yaExisteAsistencia ? '✏️ Modificar Asistencia' : '+ Tomar Asistencia'}
           </button>
 
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -419,7 +425,7 @@ export const TablaAsistencia = ({ docenteId, usuario }) => {
                   <th style={{ padding: '12px', width: '120px' }}>NIE</th>
                   <th style={{ padding: '12px' }}>APELLIDOS</th>
                   <th style={{ padding: '12px' }}>NOMBRES</th>
-                  <th style={{ padding: '12px', textAlign: 'center', width: '100px' }}>
+                  <th style={{ padding: '12px', textAlign: 'center', width: '120px' }}>
                     {fecha.split('-').reverse().slice(0, 2).join('/')}
                   </th>
                 </tr>
@@ -456,7 +462,7 @@ export const TablaAsistencia = ({ docenteId, usuario }) => {
         </div>
       )}
 
-      {/* Modal para Tomar Asistencia */}
+      {/* Modal para Tomar / Modificar Asistencia */}
       {modalAbierto && (
         <div
           style={{
@@ -487,7 +493,9 @@ export const TablaAsistencia = ({ docenteId, usuario }) => {
             }}
           >
             <div style={{ padding: '16px 20px', borderBottom: '1px solid #eee', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <h3 style={{ margin: 0, fontSize: '18px', fontWeight: 'bold' }}>Tomar Asistencia Diaria</h3>
+              <h3 style={{ margin: 0, fontSize: '18px', fontWeight: 'bold' }}>
+                {yaExisteAsistencia ? '✏️ Modificar Registro de Asistencia' : '📝 Tomar Asistencia Diaria'}
+              </h3>
               <button
                 onClick={() => setModalAbierto(false)}
                 style={{ background: 'none', border: 'none', fontSize: '24px', cursor: 'pointer', color: '#888' }}
@@ -497,7 +505,7 @@ export const TablaAsistencia = ({ docenteId, usuario }) => {
             </div>
 
             <div style={{ padding: '12px 20px', background: '#fafafa', borderBottom: '1px solid #eee', display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <span style={{ fontSize: '14px', fontWeight: 'bold' }}>Fecha:</span>
+              <span style={{ fontSize: '14px', fontWeight: 'bold' }}>Fecha seleccionada:</span>
               <input
                 type="date"
                 value={fecha}
@@ -654,7 +662,7 @@ export const TablaAsistencia = ({ docenteId, usuario }) => {
                 disabled={guardando}
                 style={{ padding: '10px 22px', border: 'none', background: '#1d4ed8', color: '#fff', borderRadius: '6px', fontWeight: 'bold', cursor: 'pointer' }}
               >
-                {guardando ? 'Guardando...' : 'Guardar'}
+                {guardando ? 'Guardando...' : 'Actualizar Asistencia'}
               </button>
             </div>
           </div>
