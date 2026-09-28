@@ -105,16 +105,13 @@ const DashboardLayout = ({ usuario, rol, tabActiva, setTabActiva, onLogout, chil
           </nav>
         </div>
 
-        {/* Sección Inferior Sin Tarjetas ni fondos blancos heredados */}
+        {/* Módulo de Cierre de Sesión Integrado (Sin tarjeta ni contenedor blanco) */}
         <div 
-          className="p-3 rounded-3 mt-auto"
-          style={{ 
-            backgroundColor: '#1e293b', 
-            border: '1px solid #334155'
-          }}
+          className="pt-3 mt-auto border-top border-secondary border-opacity-25"
+          style={{ backgroundColor: 'transparent', color: '#ffffff' }}
         >
-          {/* Nombre e Icono de Usuario */}
-          <div className="d-flex align-items-center gap-2 mb-3" style={{ color: '#ffffff' }}>
+          {/* Usuario */}
+          <div className="d-flex align-items-center gap-2 mb-3 px-1">
             <div 
               className="rounded-circle text-white d-flex align-items-center justify-content-center fw-bold"
               style={{ 
@@ -126,21 +123,21 @@ const DashboardLayout = ({ usuario, rol, tabActiva, setTabActiva, onLogout, chil
             >
               {usuario ? usuario.charAt(0).toUpperCase() : 'U'}
             </div>
-            <div className="text-truncate fw-semibold" style={{ color: '#f8fafc', fontSize: '0.875rem' }}>
+            <div className="text-truncate fw-semibold" style={{ color: '#ffffff', fontSize: '0.9rem' }}>
               {usuario || 'Usuario'}
             </div>
           </div>
 
-          {/* Botón de Cerrar Sesión Rojo Sólido */}
+          {/* Botón Rojo Sólido */}
           <button 
             type="button"
             onClick={onLogout} 
-            className="btn w-100 d-flex align-items-center justify-content-center gap-2 rounded-2 fw-semibold border-0"
+            className="btn w-100 d-flex align-items-center justify-content-center gap-2 rounded-3 fw-semibold border-0"
             style={{ 
               backgroundColor: '#dc2626', 
               color: '#ffffff',
-              fontSize: '0.825rem',
-              padding: '8px 12px'
+              fontSize: '0.85rem',
+              padding: '9px 12px'
             }}
           >
             <svg width="15" height="15" fill="none" stroke="currentColor" viewBox="0 0 24 24">
