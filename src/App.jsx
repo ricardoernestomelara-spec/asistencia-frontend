@@ -11,25 +11,34 @@ import GestionCargaAdmin from './components/GestionCargaAdmin';
 function App() {
   const [usuario, setUsuario] = useState(localStorage.getItem('usuario') || null);
   const [rol, setRol] = useState(localStorage.getItem('rol') || null);
-  const [tabActiva, setTabActiva] = useState('secciones');
+
+  // Determinar la pestaña inicial según el rol almacenado
+  const getInitialTab = (rolUsuario) => {
+    return rolUsuario === 'docente' ? 'asistencia' : 'secciones';
+  };
+
+  const [tabActiva, setTabActiva] = useState(() => {
+    const savedRol = localStorage.getItem('rol');
+    return getInitialTab(savedRol);
+  });
 
   // Función compatible con cualquier nombre de prop que espere Login.jsx
   const handleLogin = (user, userRol) => {
-    // Si recibe un objeto en vez de parámetros separados (por desestructuración en Login.jsx)
+    let u = user;
+    let r = userRol || 'admin';
+
+    // Si recibe un objeto en vez de parámetros separados
     if (typeof user === 'object' && user !== null) {
-      const u = user.usuario || user.user || 'Usuario';
-      const r = user.rol || 'admin';
-      setUsuario(u);
-      setRol(r);
-      localStorage.setItem('usuario', u);
-      localStorage.setItem('rol', r);
-      return;
+      u = user.usuario || user.user || 'Usuario';
+      r = user.rol || 'admin';
     }
 
-    setUsuario(user);
-    setRol(userRol || 'admin');
-    localStorage.setItem('usuario', user);
-    localStorage.setItem('rol', userRol || 'admin');
+    setUsuario(u);
+    setRol(r);
+    setTabActiva(getInitialTab(r));
+
+    localStorage.setItem('usuario', u);
+    localStorage.setItem('rol', r);
   };
 
   const handleLogout = () => {
@@ -40,9 +49,11 @@ function App() {
   };
 
   if (!usuario) {
-    // Pasamos tanto 'onLogin' como 'login' por compatibilidad con Login.jsx
     return <Login onLogin={handleLogin} login={handleLogin} setUsuario={handleLogin} />;
   }
+
+  // Comprobar si el usuario actual es docente
+  const esDocente = rol === 'docente';
 
   return (
     <DashboardLayout 
@@ -52,12 +63,19 @@ function App() {
       setTabActiva={setTabActiva} 
       onLogout={handleLogout}
     >
-      {tabActiva === 'asistencia' && <TablaAsistencia />}
-      {tabActiva === 'asignar' && <CargaAcademica />}
-      {tabActiva === 'docentes' && <GestionDocentes />}
-      {tabActiva === 'secciones' && <GestionSecciones />}
-      {tabActiva === 'asignaturas' && <GestionAsignaturas />}
-      {tabActiva === 'todo' && <GestionCargaAdmin />}
+      {/* Vista de Asistencia accesible para Docentes y Administradores */}
+      {(tabActiva === 'asistencia' || esDocente) && <TablaAsistencia usuario={usuario} rol={rol} />}
+
+      {/* Módulos exclusivos para Administrador */}
+      {!esDocente && (
+        <>
+          {tabActiva === 'asignar' && <CargaAcademica />}
+          {tabActiva === 'docentes' && <GestionDocentes />}
+          {tabActiva === 'secciones' && <GestionSecciones />}
+          {tabActiva === 'asignaturas' && <GestionAsignaturas />}
+          {tabActiva === 'todo' && <GestionCargaAdmin />}
+        </>
+      )}
     </DashboardLayout>
   );
 }
