@@ -29,7 +29,7 @@ export const ReporteMensual = ({ docenteId, usuario = 'Docente', esAdmin = false
   const [reporte, setReporte] = useState([]);
   const [cargando, setCargando] = useState(false);
 
-  // Obtener catálogos iniciales
+  // Cargar Catálogos Iniciales
   useEffect(() => {
     const obtenerCatalogos = async () => {
       try {
@@ -37,14 +37,16 @@ export const ReporteMensual = ({ docenteId, usuario = 'Docente', esAdmin = false
         const data = await res.json();
 
         if (data.success) {
-          setSecciones(data.secciones || []);
-          if (data.secciones && data.secciones.length > 0) {
-            setSeccionId(data.secciones[0].id || data.secciones[0].nombre);
+          const listSecciones = data.secciones || [];
+          setSecciones(listSecciones);
+          if (listSecciones.length > 0) {
+            setSeccionId(listSecciones[0].id || listSecciones[0].nombre);
           }
 
-          setAsignaturas(data.asignaturas || []);
-          if (data.asignaturas && data.asignaturas.length > 0) {
-            setAsignaturaId(data.asignaturas[0].id || data.asignaturas[0].nombre);
+          const listAsignaturas = data.asignaturas || [];
+          setAsignaturas(listAsignaturas);
+          if (listAsignaturas.length > 0) {
+            setAsignaturaId(listAsignaturas[0].id || listAsignaturas[0].nombre);
           }
         }
       } catch (err) {
@@ -55,7 +57,7 @@ export const ReporteMensual = ({ docenteId, usuario = 'Docente', esAdmin = false
     obtenerCatalogos();
   }, []);
 
-  // Cargar datos de reporte cada vez que cambia un filtro
+  // Cargar Reporte de Alumnos y Asistencias
   useEffect(() => {
     if (!seccionId) return;
 
@@ -90,25 +92,38 @@ export const ReporteMensual = ({ docenteId, usuario = 'Docente', esAdmin = false
     cargarReporte();
   }, [seccionId, asignaturaId, mes, anio]);
 
-  // Nombres descriptivos para el encabezado impreso
   const nombreMes = MESES.find(m => m.id === mes)?.nombre || mes;
-  const nombreSeccion = secciones.find(s => String(s.id) === String(seccionId) || s.nombre === seccionId)?.nombre || seccionId;
-  const nombreAsignatura = asignaturas.find(a => String(a.id) === String(asignaturaId) || a.nombre === asignaturaId)?.nombre || 'Todas las Asignaturas';
+  const objSeccion = secciones.find(s => String(s.id) === String(seccionId) || s.nombre === seccionId);
+  const nombreSeccion = objSeccion ? objSeccion.nombre : seccionId;
+  const objAsignatura = asignaturas.find(a => String(a.id) === String(asignaturaId) || a.nombre === asignaturaId);
+  const nombreAsignatura = objAsignatura ? objAsignatura.nombre : 'Todas las asignaturas';
 
   return (
-    <div style={{ padding: '20px', background: '#fff', borderRadius: '12px', border: '1px solid #e2e8f0', fontFamily: 'system-ui, sans-serif' }}>
+    <div className="reporte-container" style={{ padding: '20px', background: '#fff', borderRadius: '12px', border: '1px solid #e2e8f0', fontFamily: 'system-ui, sans-serif' }}>
       
-      {/* ESTILOS EXCLUSIVOS PARA IMPRESIÓN (PDF / PAPEL) */}
+      {/* OCULTAMIENTO COMPLETO DE LA NAVEGACIÓN Y MENÚ EN IMPRESIÓN */}
       <style>{`
         @media print {
-          /* Ocultar elementos de la interfaz interactiva */
-          aside, nav, .no-print, button, .sidebar, header {
-            display: none !important;
+          /* Ocultar la barra lateral y navegación general de la app */
+          body * {
+            visibility: hidden !important;
           }
-          body {
-            background: #fff !important;
+          /* Mostrar únicamente el contenedor de la hoja del reporte */
+          .reporte-container, .reporte-container * {
+            visibility: visible !important;
+          }
+          .reporte-container {
+            position: absolute !important;
+            left: 0 !important;
+            top: 0 !important;
+            width: 100% !important;
+            border: none !important;
             padding: 0 !important;
             margin: 0 !important;
+            box-shadow: none !important;
+          }
+          .no-print {
+            display: none !important;
           }
           .print-header {
             display: block !important;
@@ -116,23 +131,19 @@ export const ReporteMensual = ({ docenteId, usuario = 'Docente', esAdmin = false
             border-bottom: 2px solid #000;
             padding-bottom: 10px;
           }
-          .reporte-container {
-            border: none !important;
-            padding: 0 !important;
-          }
           table {
             width: 100% !important;
             border-collapse: collapse !important;
             font-size: 11pt !important;
           }
           th, td {
-            border: 1px solid #333 !important;
+            border: 1px solid #000 !important;
             padding: 6px 8px !important;
           }
         }
       `}</style>
 
-      {/* ENCABEZADO FORMAL SÓLO VISIBLE AL IMPRIMIR */}
+      {/* ENCABEZADO EXCLUSIVO PARA HOJA IMPRESA / PDF */}
       <div className="print-header" style={{ display: 'none' }}>
         <h2 style={{ margin: '0 0 4px 0', textAlign: 'center', fontSize: '18px', textTransform: 'uppercase' }}>
           CENTRO EDUCATIVO - REGISTRO DE ASISTENCIA
@@ -140,15 +151,21 @@ export const ReporteMensual = ({ docenteId, usuario = 'Docente', esAdmin = false
         <h3 style={{ margin: '0 0 12px 0', textAlign: 'center', fontSize: '14px', color: '#333' }}>
           REPORTE MENSUAL DE ASISTENCIA E INASISTENCIAS
         </h3>
-        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', marginTop: '10px' }}>
-          <div><strong>Sección:</strong> {nombreSeccion}</div>
-          <div><strong>Asignatura/Módulo:</strong> {nombreAsignatura}</div>
-          <div><strong>Período:</strong> {nombreMes} - {anio}</div>
-          <div><strong>Docente:</strong> {usuario}</div>
-        </div>
+        <table style={{ width: '100%', marginBottom: '15px', border: 'none', fontSize: '12px' }}>
+          <tbody>
+            <tr>
+              <td style={{ border: 'none', padding: '3px' }}><strong>Sección:</strong> {nombreSeccion}</td>
+              <td style={{ border: 'none', padding: '3px' }}><strong>Asignatura/Módulo:</strong> {nombreAsignatura}</td>
+            </tr>
+            <tr>
+              <td style={{ border: 'none', padding: '3px' }}><strong>Período:</strong> {nombreMes} - {anio}</td>
+              <td style={{ border: 'none', padding: '3px' }}><strong>Docente:</strong> {usuario}</td>
+            </tr>
+          </tbody>
+        </table>
       </div>
 
-      {/* ENCABEZADO DE LA PANTALLA (SE OCULTA AL IMPRIMIR) */}
+      {/* ENCABEZADO PANTALLA WEB */}
       <div className="no-print" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', flexWrap: 'wrap', gap: '12px' }}>
         <h3 style={{ margin: 0, fontSize: '18px', fontWeight: 'bold', color: '#1e293b' }}>
           📊 Reporte Mensual de Inasistencias
@@ -170,7 +187,7 @@ export const ReporteMensual = ({ docenteId, usuario = 'Docente', esAdmin = false
         </button>
       </div>
 
-      {/* FILTROS DE BÚSQUEDA (SE OCULTAN AL IMPRIMIR) */}
+      {/* FILTROS WEB */}
       <div className="no-print" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: '16px', marginBottom: '24px' }}>
         <div>
           <label style={{ display: 'block', fontSize: '11px', fontWeight: 'bold', color: '#64748b', marginBottom: '6px' }}>AÑO</label>
@@ -220,12 +237,12 @@ export const ReporteMensual = ({ docenteId, usuario = 'Docente', esAdmin = false
         </div>
       </div>
 
-      {/* RESULTADOS / TABLA FORMAL DE ASISTENCIA */}
+      {/* RESULTADOS / TABLA */}
       {cargando ? (
         <div style={{ textAlign: 'center', padding: '30px', color: '#64748b' }}>Cargando información del reporte...</div>
       ) : reporte.length === 0 ? (
         <div style={{ textAlign: 'center', padding: '24px', color: '#94a3b8', background: '#f8fafc', borderRadius: '8px' }}>
-          No existen registros cargados ni estudiantes en la asignatura/sección seleccionada para este mes.
+          No existen registros o estudiantes asignados a esta combinación en el sistema.
         </div>
       ) : (
         <div style={{ overflowX: 'auto' }}>
