@@ -5,7 +5,6 @@ import ReporteMensual from './components/ReporteMensual';
 export default function App() {
   const [pestanaActiva, setPestanaActiva] = useState('asistencia');
 
-  // Datos del usuario logueado
   const usuarioSesion = localStorage.getItem('usuario') || 'preza';
   const docenteIdSesion = localStorage.getItem('docente_id') || null;
 
@@ -15,20 +14,26 @@ export default function App() {
   };
 
   return (
-    <div style={{ display: 'flex', minHeight: '100vh', fontFamily: 'system-ui, sans-serif' }}>
+    <div style={{ display: 'flex', minHeight: '100vh', backgroundColor: '#f8fafc', fontFamily: 'system-ui, sans-serif' }}>
       
-      {/* BARRA LATERAL (SIDEBAR IZQUIERDA) */}
+      {/* BARRA LATERAL FIJA */}
       <aside style={{
         width: '240px',
+        height: '100vh',
+        position: 'fixed',
+        left: 0,
+        top: 0,
         backgroundColor: '#0f172a',
         color: '#fff',
         display: 'flex',
         flexDirection: 'column',
         justify: 'space-between',
-        padding: '20px 16px'
+        padding: '20px 16px',
+        boxSizing: 'border-box',
+        zIndex: 100
       }}>
         <div>
-          {/* Header del Sidebar */}
+          {/* Header */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '24px' }}>
             <div style={{
               width: '36px',
@@ -52,7 +57,7 @@ export default function App() {
           </div>
         </div>
 
-        {/* Footer del Sidebar: Usuario y Botón Cerrar Sesión */}
+        {/* Footer Sidebar (Usuario y Cerrar Sesión abajo) */}
         <div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '16px' }}>
             <div style={{
@@ -89,15 +94,15 @@ export default function App() {
               fontSize: '13px'
             }}
           >
-            🚪 Cerrar Sesión
+            📕 Cerrar Sesión
           </button>
         </div>
       </aside>
 
-      {/* CONTENIDO PRINCIPAL (DERECHA) */}
-      <main style={{ flex: 1, padding: '24px', backgroundColor: '#f8fafc' }}>
+      {/* CONTENIDO DERECHO */}
+      <main style={{ marginLeft: '24px', flex: 1, padding: '24px' }}>
         
-        {/* PEŚTAÑAS DE NAVEGACIÓN */}
+        {/* PESTAÑAS DE NAVEGACIÓN */}
         <div style={{ display: 'flex', gap: '8px', marginBottom: '20px', borderBottom: '2px solid #e2e8f0' }}>
           <button
             onClick={() => setPestanaActiva('asistencia')}
@@ -132,7 +137,7 @@ export default function App() {
           </button>
         </div>
 
-        {/* CONTENIDO SEGÚN LA PESTAÑA */}
+        {/* VISTAS */}
         {pestanaActiva === 'asistencia' ? (
           <TablaAsistencia docenteId={docenteIdSesion} usuario={usuarioSesion} />
         ) : (

@@ -26,7 +26,7 @@ export const ReporteMensual = ({ docenteId, usuario = 'preza', esAdmin = false }
   const [reporte, setReporte] = useState([]);
   const [cargando, setCargando] = useState(false);
 
-  // 1. Cargar secciones asociadas al usuario/docente
+  // Obtener Secciones
   useEffect(() => {
     const obtenerSecciones = async () => {
       try {
@@ -34,34 +34,40 @@ export const ReporteMensual = ({ docenteId, usuario = 'preza', esAdmin = false }
         if (esAdmin) {
           endpoint = `${API_BASE}/obtener_catalogos.php`;
         } else {
-          // Usa el usuario activo o docenteId
-          const param = docenteId ? `docente_id=${docenteId}` : `usuario=${usuario}`;
-          endpoint = `${API_BASE}/carga_academica.php?${param}`;
+          const userGuardado = localStorage.getItem('usuario') || usuario;
+          endpoint = `${API_BASE}/carga_academica.php?usuario=${userGuardado}`;
         }
 
         const res = await fetch(endpoint);
         const data = await res.json();
 
-        if (data.success) {
-          const listaRaw = esAdmin ? data.secciones || [] : data.carga || [];
+        // Evaluar formatos que puede retornar la API
+        let listaRaw = [];
+        if (Array.isArray(data)) {
+          listaRaw = data;
+        } else if (data.success && Array.isArray(data.carga)) {
+          listaRaw = data.carga;
+        } else if (data.success && Array.isArray(data.secciones)) {
+          listaRaw = data.secciones;
+        }
+
+        // Extraer secciones únicas
+        const seccionesUnicas = [];
+        const idsProcesados = new Set();
+
+        listaRaw.forEach(item => {
+          const sId = item.seccion_id || item.id_seccion || item.id;
+          const sNombre = item.seccion || item.nombre_seccion || item.nombre;
           
-          // Filtrar secciones únicas para evitar duplicados por materia
-          const seccionesUnicas = [];
-          const idsProcesados = new Set();
-
-          listaRaw.forEach(item => {
-            const sId = item.seccion_id || item.id;
-            const sNombre = item.seccion || item.nombre;
-            if (sId && !idsProcesados.has(sId)) {
-              idsProcesados.add(sId);
-              seccionesUnicas.push({ id: sId, nombre: sNombre });
-            }
-          });
-
-          setSecciones(seccionesUnicas);
-          if (seccionesUnicas.length > 0) {
-            setSeccionId(seccionesUnicas[0].id);
+          if (sId && !idsProcesados.has(sId)) {
+            idsProcesados.add(sId);
+            seccionesUnicas.push({ id: sId, nombre: sNombre });
           }
+        });
+
+        setSecciones(seccionesUnicas);
+        if (seccionesUnicas.length > 0) {
+          setSeccionId(seccionesUnicas[0].id);
         }
       } catch (err) {
         console.error('Error al obtener secciones:', err);
@@ -71,7 +77,7 @@ export const ReporteMensual = ({ docenteId, usuario = 'preza', esAdmin = false }
     obtenerSecciones();
   }, [docenteId, usuario, esAdmin]);
 
-  // 2. Obtener reporte cuando cambia la sección, mes o año
+  // Cargar Reporte por Sección
   useEffect(() => {
     if (!seccionId) return;
 
@@ -122,7 +128,7 @@ export const ReporteMensual = ({ docenteId, usuario = 'preza', esAdmin = false }
         </button>
       </div>
 
-      {/* Selectores de Filtro */}
+      {/* Selectores */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '16px', marginBottom: '24px' }}>
         <div>
           <label style={{ display: 'block', fontSize: '11px', fontWeight: 'bold', color: '#64748b', marginBottom: '6px' }}>AÑO</label>
@@ -145,7 +151,7 @@ export const ReporteMensual = ({ docenteId, usuario = 'preza', esAdmin = false }
           <label style={{ display: 'block', fontSize: '11px', fontWeight: 'bold', color: '#64748b', marginBottom: '6px' }}>SECCIÓN</label>
           <select value={seccionId} onChange={(e) => setSeccionId(e.target.value)} style={{ width: '100%', padding: '9px', borderRadius: '6px', border: '1px solid #cbd5e1' }}>
             {secciones.length === 0 ? (
-              <option value="">Cargando secciones...</option>
+              <option value="">Sin secciones disponibles</option>
             ) : (
               secciones.map((sec) => (
                 <option key={sec.id} value={sec.id}>
@@ -157,9 +163,9 @@ export const ReporteMensual = ({ docenteId, usuario = 'preza', esAdmin = false }
         </div>
       </div>
 
-      {/* Tabla de Resultados */}
+      {/* Tabla del Reporte */}
       {cargando ? (
-        <div style={{ textAlign: 'center', padding: '30px', color: '#64748b' }}>Cargando datos del reporte...</div>
+        <div style={{ textAlign: 'center', padding: '30px', color: '#64748b' }}>Cargando reporte...</div>
       ) : reporte.length === 0 ? (
         <div style={{ textAlign: 'center', padding: '24px', color: '#94a3b8', background: '#f8fafc', borderRadius: '8px' }}>
           No hay inasistencias registradas para esta sección en el mes seleccionado.
