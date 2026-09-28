@@ -58,6 +58,10 @@ const DashboardLayout = ({ usuario, rol, tabActiva, setTabActiva, onLogout, chil
     }
   ];
 
+  // Determinar nombre e inicial según el rol si no se pasa usuario
+  const nombreMostrar = usuario || (rol === 'admin' ? 'Administrador' : 'Usuario');
+  const inicialMostrar = usuario ? usuario.charAt(0).toUpperCase() : (rol === 'admin' ? 'A' : 'U');
+
   return (
     <div className="d-flex min-vh-100" style={{ backgroundColor: '#f8fafc', fontFamily: 'Inter, system-ui, sans-serif' }}>
       {/* Sidebar Lateral Izquierdo */}
@@ -105,17 +109,17 @@ const DashboardLayout = ({ usuario, rol, tabActiva, setTabActiva, onLogout, chil
           </nav>
         </div>
 
-        {/* Módulo de Usuario en la parte inferior */}
-        <div className="sidebar-footer pt-3 mt-auto border-top border-secondary border-opacity-25">
+        {/* Módulo de Cierre de Sesión e Información del Usuario */}
+        <div className="sidebar-footer pt-3 mt-auto border-top border-secondary border-opacity-25" style={{ backgroundColor: 'transparent' }}>
           <div className="d-flex align-items-center gap-2 mb-3 px-1">
             <div 
               className="rounded-circle text-white d-flex align-items-center justify-content-center fw-bold"
               style={{ width: '32px', height: '32px', backgroundColor: '#2563eb', fontSize: '0.85rem' }}
             >
-              {usuario ? usuario.charAt(0).toUpperCase() : 'U'}
+              {inicialMostrar}
             </div>
             <div className="text-truncate fw-semibold" style={{ color: '#ffffff', fontSize: '0.9rem' }}>
-              {usuario || 'Usuario'}
+              {nombreMostrar}
             </div>
           </div>
 
