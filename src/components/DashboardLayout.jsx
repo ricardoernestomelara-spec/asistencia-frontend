@@ -105,40 +105,39 @@ const DashboardLayout = ({ usuario, rol, tabActiva, setTabActiva, onLogout, chil
           </nav>
         </div>
 
-        {/* Módulo de Usuario y Cerrar Sesión en la parte inferior */}
+        {/* Sección Inferior Sin Tarjetas ni fondos blancos heredados */}
         <div 
           className="p-3 rounded-3 mt-auto"
           style={{ 
             backgroundColor: '#1e293b', 
-            border: '1px solid rgba(255, 255, 255, 0.1)',
-            color: '#ffffff'
+            border: '1px solid #334155'
           }}
         >
           {/* Nombre e Icono de Usuario */}
-          <div className="d-flex align-items-center gap-2 mb-3">
+          <div className="d-flex align-items-center gap-2 mb-3" style={{ color: '#ffffff' }}>
             <div 
               className="rounded-circle text-white d-flex align-items-center justify-content-center fw-bold"
               style={{ 
                 width: '32px', 
                 height: '32px', 
-                backgroundColor: '#3b82f6',
+                backgroundColor: '#2563eb',
                 fontSize: '0.85rem' 
               }}
             >
               {usuario ? usuario.charAt(0).toUpperCase() : 'U'}
             </div>
-            <div className="text-truncate fw-semibold text-white" style={{ fontSize: '0.875rem' }}>
+            <div className="text-truncate fw-semibold" style={{ color: '#f8fafc', fontSize: '0.875rem' }}>
               {usuario || 'Usuario'}
             </div>
           </div>
 
-          {/* Botón de Cerrar Sesión Rojo Visible */}
+          {/* Botón de Cerrar Sesión Rojo Sólido */}
           <button 
             type="button"
             onClick={onLogout} 
-            className="btn w-100 d-flex align-items-center justify-content-center gap-2 rounded-2 fw-medium border-0"
+            className="btn w-100 d-flex align-items-center justify-content-center gap-2 rounded-2 fw-semibold border-0"
             style={{ 
-              backgroundColor: '#ef4444', 
+              backgroundColor: '#dc2626', 
               color: '#ffffff',
               fontSize: '0.825rem',
               padding: '8px 12px'
