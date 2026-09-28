@@ -58,9 +58,13 @@ const DashboardLayout = ({ usuario, rol, tabActiva, setTabActiva, onLogout, chil
     }
   ];
 
-  // Determinar nombre e inicial según el rol si no se pasa usuario
-  const nombreMostrar = usuario || (rol === 'admin' ? 'Administrador' : 'Usuario');
-  const inicialMostrar = usuario ? usuario.charAt(0).toUpperCase() : (rol === 'admin' ? 'A' : 'U');
+  // Si usuario no existe, o es literalmente el string "Usuario", mostramos "Administrador" (si rol es admin)
+  const esUsuarioGenerico = !usuario || usuario.toLowerCase() === 'usuario';
+  const nombreMostrar = esUsuarioGenerico 
+    ? (rol === 'admin' ? 'Administrador' : 'Usuario') 
+    : usuario;
+
+  const inicialMostrar = nombreMostrar.charAt(0).toUpperCase();
 
   return (
     <div className="d-flex min-vh-100" style={{ backgroundColor: '#f8fafc', fontFamily: 'Inter, system-ui, sans-serif' }}>
