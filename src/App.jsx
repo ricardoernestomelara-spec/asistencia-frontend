@@ -14,22 +14,26 @@ export default function App() {
   };
 
   return (
-    <div style={{ display: 'flex', width: '100vw', minHeight: '100vh', backgroundColor: '#f8fafc', fontFamily: 'system-ui, sans-serif' }}>
+    <div style={{ display: 'flex', minHeight: '100vh', backgroundColor: '#f8fafc', fontFamily: 'system-ui, sans-serif' }}>
       
-      {/* BARRA LATERAL (SIDEBAR) */}
+      {/* BARRA LATERAL (SIDEBAR FIJA AL 100% DE ALTO) */}
       <aside style={{
         width: '240px',
-        minWidth: '240px',
+        height: '100vh',
+        position: 'fixed',
+        left: 0,
+        top: 0,
         backgroundColor: '#0f172a',
         color: '#fff',
         display: 'flex',
         flexDirection: 'column',
-        justify: 'space-between',
+        justifyContent: 'space-between',
         padding: '20px 16px',
-        boxSizing: 'border-box'
+        boxSizing: 'border-box',
+        zIndex: 1000
       }}>
+        {/* PARTE SUPERIOR: LOGO Y SISTEMA */}
         <div>
-          {/* LOGO Y SISTEMA */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '24px' }}>
             <div style={{
               width: '36px',
@@ -53,7 +57,7 @@ export default function App() {
           </div>
         </div>
 
-        {/* PIE DE SIDEBAR (USUARIO Y CERRAR SESIÓN) */}
+        {/* PARTE INFERIOR: USUARIO Y BOTÓN ABAJO DEL TODO */}
         <div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '16px' }}>
             <div style={{
@@ -95,10 +99,10 @@ export default function App() {
         </div>
       </aside>
 
-      {/* CONTENIDO PRINCIPAL */}
-      <main style={{ flex: 1, padding: '24px', overflowX: 'auto', boxSizing: 'border-box' }}>
+      {/* CONTENIDO DERECHO CON MARGEN A LA IZQUIERDA PARA NO CHOCAR CON LA BARRA */}
+      <main style={{ marginLeft: '240px', flex: 1, padding: '24px', boxSizing: 'border-box', width: 'calc(100vw - 240px)' }}>
         
-        {/* NAVEGACIÓN PESTAÑAS */}
+        {/* NAVEGACIÓN DE PESTAÑAS */}
         <div style={{ display: 'flex', gap: '8px', marginBottom: '20px', borderBottom: '2px solid #e2e8f0' }}>
           <button
             onClick={() => setPestanaActiva('asistencia')}
@@ -133,7 +137,7 @@ export default function App() {
           </button>
         </div>
 
-        {/* VISTAS */}
+        {/* CONTENIDO DE LA PESTAÑA */}
         {pestanaActiva === 'asistencia' ? (
           <TablaAsistencia docenteId={docenteIdSesion} usuario={usuarioSesion} />
         ) : (
