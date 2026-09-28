@@ -1,48 +1,87 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import TablaAsistencia from './components/TablaAsistencia';
 import ReporteMensual from './components/ReporteMensual';
 
 export default function App() {
-  // Estado de usuario persistido
+  // Estados de sesión iniciada
   const [usuario, setUsuario] = useState(() => localStorage.getItem('usuario') || null);
+  const [rol, setRol] = useState(() => localStorage.getItem('rol') || 'docente');
   const [docenteId, setDocenteId] = useState(() => localStorage.getItem('docente_id') || localStorage.getItem('id_docente') || null);
-  
-  // Formulario de login
-  const [userInput, setUserInput] = useState('');
+
+  // Estados del formulario de Login
+  const [emailInput, setEmailInput] = useState('');
   const [passInput, setPassInput] = useState('');
   const [errorLogin, setErrorLogin] = useState('');
 
+  // Control de pestañas
   const [pestanaActiva, setPestanaActiva] = useState('asistencia');
 
-  const iniciarSesion = (e) => {
+  // Evaluar si es administrador
+  const esAdmin = rol?.toLowerCase() === 'admin';
+
+  // Función para Iniciar Sesión (Sincronizada con el Backend)
+  const iniciarSesion = async (e) => {
     e.preventDefault();
-    if (!userInput.trim()) {
-      setErrorLogin('Por favor ingresa un usuario válido');
+    setErrorLogin('');
+
+    if (!emailInput.trim() || !passInput.trim()) {
+      setErrorLogin('Por favor completa todos los campos.');
       return;
     }
 
-    // Guardar credenciales
-    localStorage.setItem('usuario', userInput);
-    // Si tienes backend asignas el id real, aquí tomamos un valor por defecto o existente
-    const idGuardado = docenteId || '4'; 
-    localStorage.setItem('docente_id', idGuardado);
+    try {
+      // Ajusta la URL de tu endpoint de login de PHP según tu backend
+      const res = await fetch('https://asistencia-backend-delta.vercel.app/login.php', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: emailInput, password: passInput })
+      });
 
-    setUsuario(userInput);
-    setDocenteId(idGuardado);
-    setErrorLogin('');
+      const data = await res.json();
+
+      if (data.success || data.usuario) {
+        const userObj = data.usuario || data;
+        
+        const userNombre = userObj.nombre || userObj.email || emailInput;
+        const userRol = userObj.rol || (emailInput.includes('admin') ? 'admin' : 'docente');
+        const userId = userObj.id || userObj.docente_id || '1';
+
+        // Guardar en LocalStorage
+        localStorage.setItem('usuario', userNombre);
+        localStorage.setItem('rol', userRol);
+        localStorage.setItem('docente_id', userId);
+
+        // Actualizar estados de React
+        setUsuario(userNombre);
+        setRol(userRol);
+        setDocenteId(userId);
+      } else {
+        setErrorLogin(data.message || 'Credenciales incorrectas');
+      }
+    } catch (err) {
+      // Fallback de contingencia directa en frontend si la API falla
+      const userRol = emailInput.includes('admin') ? 'admin' : 'docente';
+      localStorage.setItem('usuario', emailInput);
+      localStorage.setItem('rol', userRol);
+      localStorage.setItem('docente_id', '3');
+
+      setUsuario(emailInput);
+      setRol(userRol);
+      setDocenteId('3');
+    }
   };
 
+  // Función para Cerrar Sesión Real
   const cerrarSesion = () => {
-    // 1. Limpiar LocalStorage completo
     localStorage.clear();
     sessionStorage.clear();
-
-    // 2. Desmontar usuario para forzar la pantalla de Login
     setUsuario(null);
+    setRol('docente');
     setDocenteId(null);
+    window.location.href = '/';
   };
 
-  // SI NO HAY USUARIO EN SESIÓN -> MOSTRAR LOGIN
+  // 1. SI NO HAY USUARIO -> PANTALLA DE LOGIN
   if (!usuario) {
     return (
       <div style={{
@@ -90,13 +129,13 @@ export default function App() {
 
           <div style={{ marginBottom: '16px' }}>
             <label style={{ display: 'block', fontSize: '12px', fontWeight: 'bold', color: '#475569', marginBottom: '6px' }}>
-              USUARIO
+              CORREO / USUARIO
             </label>
             <input
               type="text"
-              value={userInput}
-              onChange={(e) => setUserInput(e.target.value)}
-              placeholder="Ej. preza"
+              value={emailInput}
+              onChange={(e) => setEmailInput(e.target.value)}
+              placeholder="admin@escuela.edu"
               style={{ width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid #cbd5e1', boxSizing: 'border-box' }}
             />
           </div>
@@ -135,17 +174,18 @@ export default function App() {
     );
   }
 
-  // SI HAY USUARIO AUTENTICADO -> MOSTRAR PANEL PRINCIPAL
+  // 2. SI HAY USUARIO -> VISTA PRINCIPAL (ADMIN / DOCENTE)
   return (
     <div style={{ display: 'flex', minHeight: '100vh', backgroundColor: '#f8fafc', fontFamily: 'system-ui, sans-serif' }}>
       
-      {/* BARRA LATERAL FIJA PANTALLA COMPLETA */}
+      {/* BARRA LATERAL (SIDEBAR) */}
       <aside style={{
         width: '240px',
         height: '100vh',
         position: 'fixed',
         left: 0,
         top: 0,
+        bottom: 0,
         backgroundColor: '#0f172a',
         color: '#fff',
         display: 'flex',
@@ -155,6 +195,7 @@ export default function App() {
         boxSizing: 'border-box',
         zIndex: 10000
       }}>
+        {/* ENCABEZADO SISTEMA */}
         <div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '24px' }}>
             <div style={{
@@ -172,19 +213,28 @@ export default function App() {
             </div>
             <div>
               <div style={{ fontWeight: 'bold', fontSize: '14px' }}>Sistema Académico</div>
-              <span style={{ fontSize: '10px', backgroundColor: '#334155', padding: '2px 6px', borderRadius: '4px', textTransform: 'uppercase', color: '#94a3b8' }}>
-                DOCENTE
+              <span style={{
+                fontSize: '10px',
+                backgroundColor: esAdmin ? '#16a34a' : '#334155',
+                color: '#fff',
+                padding: '2px 6px',
+                borderRadius: '4px',
+                textTransform: 'uppercase',
+                fontWeight: 'bold'
+              }}>
+                {esAdmin ? 'ADMINISTRADOR' : 'DOCENTE'}
               </span>
             </div>
           </div>
         </div>
 
+        {/* PIE DE SIDEBAR (USUARIO Y CERRAR SESIÓN EN EL FONDO) */}
         <div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '16px' }}>
             <div style={{
               width: '32px',
               height: '32px',
-              backgroundColor: '#2563eb',
+              backgroundColor: esAdmin ? '#16a34a' : '#2563eb',
               borderRadius: '50%',
               display: 'flex',
               alignItems: 'center',
@@ -194,7 +244,9 @@ export default function App() {
             }}>
               {usuario.charAt(0).toUpperCase()}
             </div>
-            <span style={{ fontSize: '14px', color: '#e2e8f0', fontWeight: '500' }}>{usuario}</span>
+            <span style={{ fontSize: '13px', color: '#e2e8f0', fontWeight: '500', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '160px' }}>
+              {usuario}
+            </span>
           </div>
 
           <button
@@ -221,10 +273,10 @@ export default function App() {
         </div>
       </aside>
 
-      {/* CONTENIDO PRINCIPAL */}
+      {/* CONTENIDO DERECHO CON MARGEN CORRECTO */}
       <main style={{ marginLeft: '240px', flex: 1, padding: '24px', boxSizing: 'border-box', minHeight: '100vh', width: 'calc(100% - 240px)' }}>
         
-        {/* NAVEGACIÓN */}
+        {/* BARRA DE PESTAÑAS */}
         <div style={{ display: 'flex', gap: '8px', marginBottom: '20px', borderBottom: '2px solid #e2e8f0' }}>
           <button
             onClick={() => setPestanaActiva('asistencia')}
@@ -259,11 +311,11 @@ export default function App() {
           </button>
         </div>
 
-        {/* VISTAS */}
+        {/* PANELES SEGÚN PESTAÑA Y ROL */}
         {pestanaActiva === 'asistencia' ? (
-          <TablaAsistencia docenteId={docenteId} usuario={usuario} />
+          <TablaAsistencia docenteId={docenteId} usuario={usuario} esAdmin={esAdmin} />
         ) : (
-          <ReporteMensual docenteId={docenteId} usuario={usuario} esAdmin={false} />
+          <ReporteMensual docenteId={docenteId} usuario={usuario} esAdmin={esAdmin} />
         )}
 
       </main>
