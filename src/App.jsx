@@ -3,20 +3,139 @@ import TablaAsistencia from './components/TablaAsistencia';
 import ReporteMensual from './components/ReporteMensual';
 
 export default function App() {
+  // Estado de usuario persistido
+  const [usuario, setUsuario] = useState(() => localStorage.getItem('usuario') || null);
+  const [docenteId, setDocenteId] = useState(() => localStorage.getItem('docente_id') || localStorage.getItem('id_docente') || null);
+  
+  // Formulario de login
+  const [userInput, setUserInput] = useState('');
+  const [passInput, setPassInput] = useState('');
+  const [errorLogin, setErrorLogin] = useState('');
+
   const [pestanaActiva, setPestanaActiva] = useState('asistencia');
-  const [autenticado, setAutenticado] = useState(() => {
-    return Boolean(localStorage.getItem('usuario'));
-  });
 
-  const usuarioSesion = localStorage.getItem('usuario') || 'preza';
-  const docenteIdSesion = localStorage.getItem('docente_id') || localStorage.getItem('id_docente') || null;
+  const iniciarSesion = (e) => {
+    e.preventDefault();
+    if (!userInput.trim()) {
+      setErrorLogin('Por favor ingresa un usuario válido');
+      return;
+    }
 
-  const cerrarSesion = () => {
-    localStorage.clear();
-    setAutenticado(false);
-    window.location.href = '/';
+    // Guardar credenciales
+    localStorage.setItem('usuario', userInput);
+    // Si tienes backend asignas el id real, aquí tomamos un valor por defecto o existente
+    const idGuardado = docenteId || '4'; 
+    localStorage.setItem('docente_id', idGuardado);
+
+    setUsuario(userInput);
+    setDocenteId(idGuardado);
+    setErrorLogin('');
   };
 
+  const cerrarSesion = () => {
+    // 1. Limpiar LocalStorage completo
+    localStorage.clear();
+    sessionStorage.clear();
+
+    // 2. Desmontar usuario para forzar la pantalla de Login
+    setUsuario(null);
+    setDocenteId(null);
+  };
+
+  // SI NO HAY USUARIO EN SESIÓN -> MOSTRAR LOGIN
+  if (!usuario) {
+    return (
+      <div style={{
+        display: 'flex',
+        height: '100vh',
+        width: '100vw',
+        alignItems: 'center',
+        justifyContent: 'center',
+        backgroundColor: '#0f172a',
+        fontFamily: 'system-ui, sans-serif'
+      }}>
+        <form onSubmit={iniciarSesion} style={{
+          backgroundColor: '#ffffff',
+          padding: '32px',
+          borderRadius: '12px',
+          width: '100%',
+          maxWidth: '360px',
+          boxShadow: '0 10px 25px rgba(0,0,0,0.3)'
+        }}>
+          <div style={{ textAlign: 'center', marginBottom: '24px' }}>
+            <div style={{
+              width: '48px',
+              height: '48px',
+              backgroundColor: '#2563eb',
+              color: '#fff',
+              borderRadius: '8px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              fontWeight: 'bold',
+              fontSize: '20px',
+              margin: '0 auto 12px auto'
+            }}>
+              SA
+            </div>
+            <h2 style={{ margin: 0, fontSize: '20px', color: '#1e293b' }}>Sistema Académico</h2>
+            <p style={{ margin: '4px 0 0 0', fontSize: '13px', color: '#64748b' }}>Ingresa tus credenciales para continuar</p>
+          </div>
+
+          {errorLogin && (
+            <div style={{ backgroundColor: '#fee2e2', color: '#991b1b', padding: '8px 12px', borderRadius: '6px', fontSize: '12px', marginBottom: '16px' }}>
+              {errorLogin}
+            </div>
+          )}
+
+          <div style={{ marginBottom: '16px' }}>
+            <label style={{ display: 'block', fontSize: '12px', fontWeight: 'bold', color: '#475569', marginBottom: '6px' }}>
+              USUARIO
+            </label>
+            <input
+              type="text"
+              value={userInput}
+              onChange={(e) => setUserInput(e.target.value)}
+              placeholder="Ej. preza"
+              style={{ width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid #cbd5e1', boxSizing: 'border-box' }}
+            />
+          </div>
+
+          <div style={{ marginBottom: '20px' }}>
+            <label style={{ display: 'block', fontSize: '12px', fontWeight: 'bold', color: '#475569', marginBottom: '6px' }}>
+              CONTRASEÑA
+            </label>
+            <input
+              type="password"
+              value={passInput}
+              onChange={(e) => setPassInput(e.target.value)}
+              placeholder="••••••••"
+              style={{ width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid #cbd5e1', boxSizing: 'border-box' }}
+            />
+          </div>
+
+          <button
+            type="submit"
+            style={{
+              width: '100%',
+              padding: '11px',
+              backgroundColor: '#2563eb',
+              color: '#ffffff',
+              border: 'none',
+              borderRadius: '8px',
+              fontWeight: 'bold',
+              cursor: 'pointer',
+              fontSize: '14px'
+            }}
+          >
+            Iniciar Sesión
+          </button>
+        </form>
+      </div>
+    );
+  }
+
+  // SI HAY USUARIO AUTENTICADO -> MOSTRAR PANEL PRINCIPAL
   return (
     <div style={{ display: 'flex', minHeight: '100vh', backgroundColor: '#f8fafc', fontFamily: 'system-ui, sans-serif' }}>
       
@@ -27,7 +146,6 @@ export default function App() {
         position: 'fixed',
         left: 0,
         top: 0,
-        bottom: 0,
         backgroundColor: '#0f172a',
         color: '#fff',
         display: 'flex',
@@ -37,7 +155,6 @@ export default function App() {
         boxSizing: 'border-box',
         zIndex: 10000
       }}>
-        {/* PARTE SUPERIOR */}
         <div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '24px' }}>
             <div style={{
@@ -62,8 +179,7 @@ export default function App() {
           </div>
         </div>
 
-        {/* PARTE INFERIOR (PEGADO ABAJO DEL TODO) */}
-        <div style={{ marginTop: 'auto' }}>
+        <div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '16px' }}>
             <div style={{
               width: '32px',
@@ -76,9 +192,9 @@ export default function App() {
               fontWeight: 'bold',
               fontSize: '12px'
             }}>
-              {usuarioSesion.charAt(0).toUpperCase()}
+              {usuario.charAt(0).toUpperCase()}
             </div>
-            <span style={{ fontSize: '14px', color: '#e2e8f0', fontWeight: '500' }}>{usuarioSesion}</span>
+            <span style={{ fontSize: '14px', color: '#e2e8f0', fontWeight: '500' }}>{usuario}</span>
           </div>
 
           <button
@@ -105,10 +221,10 @@ export default function App() {
         </div>
       </aside>
 
-      {/* CONTENIDO PRINCIPAL A LA DERECHA */}
+      {/* CONTENIDO PRINCIPAL */}
       <main style={{ marginLeft: '240px', flex: 1, padding: '24px', boxSizing: 'border-box', minHeight: '100vh', width: 'calc(100% - 240px)' }}>
         
-        {/* PESTAÑAS */}
+        {/* NAVEGACIÓN */}
         <div style={{ display: 'flex', gap: '8px', marginBottom: '20px', borderBottom: '2px solid #e2e8f0' }}>
           <button
             onClick={() => setPestanaActiva('asistencia')}
@@ -143,11 +259,11 @@ export default function App() {
           </button>
         </div>
 
-        {/* COMPONENTES */}
+        {/* VISTAS */}
         {pestanaActiva === 'asistencia' ? (
-          <TablaAsistencia docenteId={docenteIdSesion} usuario={usuarioSesion} />
+          <TablaAsistencia docenteId={docenteId} usuario={usuario} />
         ) : (
-          <ReporteMensual docenteId={docenteIdSesion} usuario={usuarioSesion} esAdmin={false} />
+          <ReporteMensual docenteId={docenteId} usuario={usuario} esAdmin={false} />
         )}
 
       </main>
