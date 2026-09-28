@@ -1,25 +1,28 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
+import { API_BASE } from './config';
+import DashboardLayout from './components/DashboardLayout';
 import TablaAsistencia from './components/TablaAsistencia';
 import ReporteMensual from './components/ReporteMensual';
+import GestionSecciones from './components/GestionSecciones';
+import GestionDocentes from './components/GestionDocentes';
+import GestionAsignaturas from './components/GestionAsignaturas';
+import GestionCargaAdmin from './components/GestionCargaAdmin';
 
 export default function App() {
-  // Estados de sesión iniciada
+  // Manejo de Estado de Sesión con Persistencia Local
   const [usuario, setUsuario] = useState(() => localStorage.getItem('usuario') || null);
   const [rol, setRol] = useState(() => localStorage.getItem('rol') || 'docente');
   const [docenteId, setDocenteId] = useState(() => localStorage.getItem('docente_id') || localStorage.getItem('id_docente') || null);
 
-  // Estados del formulario de Login
+  // Estados del Formulario de Autenticación
   const [emailInput, setEmailInput] = useState('');
   const [passInput, setPassInput] = useState('');
   const [errorLogin, setErrorLogin] = useState('');
+  const [cargando, setCargando] = useState(false);
 
-  // Control de pestañas
-  const [pestanaActiva, setPestanaActiva] = useState('asistencia');
+  // Vista activa por defecto según el rol ('asistencia', 'reporte', 'secciones', 'docentes', 'asignaturas', 'asignar', 'todo')
+  const [tabActiva, setTabActiva] = useState('asistencia');
 
-  // Evaluar si es administrador
-  const esAdmin = rol?.toLowerCase() === 'admin';
-
-  // Función para Iniciar Sesión (Sincronizada con el Backend)
   const iniciarSesion = async (e) => {
     e.preventDefault();
     setErrorLogin('');
@@ -29,59 +32,71 @@ export default function App() {
       return;
     }
 
+    setCargando(true);
+
     try {
-      // Ajusta la URL de tu endpoint de login de PHP según tu backend
-      const res = await fetch('https://asistencia-backend-delta.vercel.app/login.php', {
+      // Uso explícito de API_BASE para evitar errores 404 de rutas locales
+      const res = await fetch(`${API_BASE}/login.php`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: emailInput, password: passInput })
+        body: JSON.stringify({ usuario: emailInput, email: emailInput, password: passInput })
       });
 
       const data = await res.json();
 
       if (data.success || data.usuario) {
         const userObj = data.usuario || data;
-        
-        const userNombre = userObj.nombre || userObj.email || emailInput;
-        const userRol = userObj.rol || (emailInput.includes('admin') ? 'admin' : 'docente');
+        const userNombre = typeof userObj === 'string' ? userObj : (userObj.nombre || userObj.email || emailInput);
+        const userRol = data.rol || userObj.rol || (emailInput.toLowerCase().includes('admin') ? 'admin' : 'docente');
         const userId = userObj.id || userObj.docente_id || '1';
 
-        // Guardar en LocalStorage
         localStorage.setItem('usuario', userNombre);
         localStorage.setItem('rol', userRol);
         localStorage.setItem('docente_id', userId);
 
-        // Actualizar estados de React
         setUsuario(userNombre);
         setRol(userRol);
         setDocenteId(userId);
+
+        if (userRol === 'admin') {
+          setTabActiva('secciones');
+        } else {
+          setTabActiva('asistencia');
+        }
       } else {
-        setErrorLogin(data.message || 'Credenciales incorrectas');
+        setErrorLogin(data.message || 'Usuario o contraseña incorrectos');
       }
     } catch (err) {
-      // Fallback de contingencia directa en frontend si la API falla
-      const userRol = emailInput.includes('admin') ? 'admin' : 'docente';
-      localStorage.setItem('usuario', emailInput);
-      localStorage.setItem('rol', userRol);
-      localStorage.setItem('docente_id', '3');
+      // Modulo de respaldo si hay un error en la respuesta del backend
+      const esAdminCorreo = emailInput.toLowerCase().includes('admin');
+      const userRol = esAdminCorreo ? 'admin' : 'docente';
+      const userNombre = emailInput;
 
-      setUsuario(emailInput);
+      localStorage.setItem('usuario', userNombre);
+      localStorage.setItem('rol', userRol);
+      localStorage.setItem('docente_id', '1');
+
+      setUsuario(userNombre);
       setRol(userRol);
-      setDocenteId('3');
+      setDocenteId('1');
+
+      if (userRol === 'admin') {
+        setTabActiva('secciones');
+      }
+    } finally {
+      setCargando(false);
     }
   };
 
-  // Función para Cerrar Sesión Real
   const cerrarSesion = () => {
     localStorage.clear();
     sessionStorage.clear();
     setUsuario(null);
     setRol('docente');
     setDocenteId(null);
-    window.location.href = '/';
   };
 
-  // 1. SI NO HAY USUARIO -> PANTALLA DE LOGIN
+  // 1. PANTALLA DE ACCESO (LOGIN)
   if (!usuario) {
     return (
       <div style={{
@@ -129,7 +144,7 @@ export default function App() {
 
           <div style={{ marginBottom: '16px' }}>
             <label style={{ display: 'block', fontSize: '12px', fontWeight: 'bold', color: '#475569', marginBottom: '6px' }}>
-              CORREO / USUARIO
+              USUARIO / CORREO
             </label>
             <input
               type="text"
@@ -155,6 +170,7 @@ export default function App() {
 
           <button
             type="submit"
+            disabled={cargando}
             style={{
               width: '100%',
               padding: '11px',
@@ -167,158 +183,70 @@ export default function App() {
               fontSize: '14px'
             }}
           >
-            Iniciar Sesión
+            {cargando ? 'Iniciando sesión...' : 'Iniciar Sesión'}
           </button>
         </form>
       </div>
     );
   }
 
-  // 2. SI HAY USUARIO -> VISTA PRINCIPAL (ADMIN / DOCENTE)
+  const esAdmin = rol === 'admin';
+
+  // Renderizador dinámico de vistas
+  const renderContenido = () => {
+    switch (tabActiva) {
+      case 'secciones':
+        return <GestionSecciones />;
+      case 'docentes':
+        return <GestionDocentes />;
+      case 'asignaturas':
+        return <GestionAsignaturas />;
+      case 'asignar':
+        return <GestionCargaAdmin />;
+      case 'todo':
+        return (
+          <div className="d-flex flex-column gap-4">
+            <GestionSecciones />
+            <GestionDocentes />
+            <GestionAsignaturas />
+            <GestionCargaAdmin />
+          </div>
+        );
+      case 'reporte':
+        return <ReporteMensual docenteId={docenteId} usuario={usuario} esAdmin={esAdmin} />;
+      case 'asistencia':
+      default:
+        return <TablaAsistencia docenteId={docenteId} usuario={usuario} esAdmin={esAdmin} />;
+    }
+  };
+
+  // 2. ESTRUCTURA PRINCIPAL DE LA APLICACIÓN CON DASHBOARD LAYOUT
   return (
-    <div style={{ display: 'flex', minHeight: '100vh', backgroundColor: '#f8fafc', fontFamily: 'system-ui, sans-serif' }}>
-      
-      {/* BARRA LATERAL (SIDEBAR) */}
-      <aside style={{
-        width: '240px',
-        height: '100vh',
-        position: 'fixed',
-        left: 0,
-        top: 0,
-        bottom: 0,
-        backgroundColor: '#0f172a',
-        color: '#fff',
-        display: 'flex',
-        flexDirection: 'column',
-        justifyContent: 'space-between',
-        padding: '20px 16px',
-        boxSizing: 'border-box',
-        zIndex: 10000
-      }}>
-        {/* ENCABEZADO SISTEMA */}
-        <div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '24px' }}>
-            <div style={{
-              width: '36px',
-              height: '36px',
-              backgroundColor: '#2563eb',
-              borderRadius: '6px',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              fontWeight: 'bold',
-              fontSize: '14px'
-            }}>
-              SA
-            </div>
-            <div>
-              <div style={{ fontWeight: 'bold', fontSize: '14px' }}>Sistema Académico</div>
-              <span style={{
-                fontSize: '10px',
-                backgroundColor: esAdmin ? '#16a34a' : '#334155',
-                color: '#fff',
-                padding: '2px 6px',
-                borderRadius: '4px',
-                textTransform: 'uppercase',
-                fontWeight: 'bold'
-              }}>
-                {esAdmin ? 'ADMINISTRADOR' : 'DOCENTE'}
-              </span>
-            </div>
-          </div>
-        </div>
+    <DashboardLayout
+      usuario={usuario}
+      rol={rol}
+      tabActiva={tabActiva}
+      setTabActiva={setTabActiva}
+      onLogout={cerrarSesion}
+    >
+      {/* Botones de conmutación rápida para docente/admin */}
+      <div className="d-flex gap-2 mb-4 border-bottom pb-2">
+        <button
+          onClick={() => setTabActiva('asistencia')}
+          className={`btn fw-bold ${tabActiva === 'asistencia' ? 'btn-primary' : 'btn-outline-secondary'}`}
+        >
+          📋 Tomar / Modificar Asistencia
+        </button>
+        <button
+          onClick={() => setTabActiva('reporte')}
+          className={`btn fw-bold ${tabActiva === 'reporte' ? 'btn-primary' : 'btn-outline-secondary'}`}
+        >
+          📊 Reporte Mensual
+        </button>
+      </div>
 
-        {/* PIE DE SIDEBAR (USUARIO Y CERRAR SESIÓN EN EL FONDO) */}
-        <div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '16px' }}>
-            <div style={{
-              width: '32px',
-              height: '32px',
-              backgroundColor: esAdmin ? '#16a34a' : '#2563eb',
-              borderRadius: '50%',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              fontWeight: 'bold',
-              fontSize: '12px'
-            }}>
-              {usuario.charAt(0).toUpperCase()}
-            </div>
-            <span style={{ fontSize: '13px', color: '#e2e8f0', fontWeight: '500', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '160px' }}>
-              {usuario}
-            </span>
-          </div>
-
-          <button
-            onClick={cerrarSesion}
-            type="button"
-            style={{
-              width: '100%',
-              padding: '10px',
-              backgroundColor: '#dc2626',
-              color: '#fff',
-              border: 'none',
-              borderRadius: '8px',
-              fontWeight: 'bold',
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: '8px',
-              fontSize: '13px'
-            }}
-          >
-            📕 Cerrar Sesión
-          </button>
-        </div>
-      </aside>
-
-      {/* CONTENIDO DERECHO CON MARGEN CORRECTO */}
-      <main style={{ marginLeft: '240px', flex: 1, padding: '24px', boxSizing: 'border-box', minHeight: '100vh', width: 'calc(100% - 240px)' }}>
-        
-        {/* BARRA DE PESTAÑAS */}
-        <div style={{ display: 'flex', gap: '8px', marginBottom: '20px', borderBottom: '2px solid #e2e8f0' }}>
-          <button
-            onClick={() => setPestanaActiva('asistencia')}
-            style={{
-              padding: '10px 20px',
-              border: 'none',
-              borderBottom: pestanaActiva === 'asistencia' ? '3px solid #00a8e8' : '3px solid transparent',
-              background: 'none',
-              fontWeight: 'bold',
-              fontSize: '15px',
-              color: pestanaActiva === 'asistencia' ? '#00a8e8' : '#64748b',
-              cursor: 'pointer'
-            }}
-          >
-            📋 Tomar / Modificar Asistencia
-          </button>
-
-          <button
-            onClick={() => setPestanaActiva('reporte')}
-            style={{
-              padding: '10px 20px',
-              border: 'none',
-              borderBottom: pestanaActiva === 'reporte' ? '3px solid #00a8e8' : '3px solid transparent',
-              background: 'none',
-              fontWeight: 'bold',
-              fontSize: '15px',
-              color: pestanaActiva === 'reporte' ? '#00a8e8' : '#64748b',
-              cursor: 'pointer'
-            }}
-          >
-            📊 Reporte Mensual
-          </button>
-        </div>
-
-        {/* PANELES SEGÚN PESTAÑA Y ROL */}
-        {pestanaActiva === 'asistencia' ? (
-          <TablaAsistencia docenteId={docenteId} usuario={usuario} esAdmin={esAdmin} />
-        ) : (
-          <ReporteMensual docenteId={docenteId} usuario={usuario} esAdmin={esAdmin} />
-        )}
-
-      </main>
-    </div>
+      {/* Contenido Modular Renderizado */}
+      {renderContenido()}
+    </DashboardLayout>
   );
 }
