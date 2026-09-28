@@ -69,7 +69,7 @@ const DashboardLayout = ({ usuario, rol, tabActiva, setTabActiva, onLogout, chil
           {/* Header Brand */}
           <div className="d-flex align-items-center gap-3 px-2 py-3 mb-4 border-bottom border-secondary border-opacity-25">
             <div 
-              className="d-flex align-items-center justify-content-center rounded-3 bg-primary text-white fw-bold"
+              className="d-flex align-items-center justify-content-center rounded-3 text-white fw-bold"
               style={{ width: '38px', height: '38px', fontSize: '1.1rem', background: 'linear-gradient(135deg, #2563eb, #1d4ed8)' }}
             >
               SA
@@ -105,30 +105,46 @@ const DashboardLayout = ({ usuario, rol, tabActiva, setTabActiva, onLogout, chil
           </nav>
         </div>
 
-        {/* User Card Inferior Estilizada Ocultando el Fondo Blanco */}
+        {/* Módulo de Usuario y Cerrar Sesión en la parte inferior */}
         <div 
-          className="p-3 rounded-3 mt-auto border border-secondary border-opacity-25"
-          style={{ backgroundColor: '#1e293b', color: '#f8fafc' }}
+          className="p-3 rounded-3 mt-auto"
+          style={{ 
+            backgroundColor: '#1e293b', 
+            border: '1px solid rgba(255, 255, 255, 0.1)',
+            color: '#ffffff'
+          }}
         >
+          {/* Nombre e Icono de Usuario */}
           <div className="d-flex align-items-center gap-2 mb-3">
             <div 
-              className="rounded-circle text-white d-flex align-items-center justify-content-center small fw-bold"
-              style={{ width: '32px', height: '32px', backgroundColor: '#334155' }}
+              className="rounded-circle text-white d-flex align-items-center justify-content-center fw-bold"
+              style={{ 
+                width: '32px', 
+                height: '32px', 
+                backgroundColor: '#3b82f6',
+                fontSize: '0.85rem' 
+              }}
             >
               {usuario ? usuario.charAt(0).toUpperCase() : 'U'}
             </div>
-            <div className="text-truncate small fw-semibold text-white">
+            <div className="text-truncate fw-semibold text-white" style={{ fontSize: '0.875rem' }}>
               {usuario || 'Usuario'}
             </div>
           </div>
 
+          {/* Botón de Cerrar Sesión Rojo Visible */}
           <button 
             type="button"
             onClick={onLogout} 
-            className="btn btn-outline-danger btn-sm w-100 d-flex align-items-center justify-content-center gap-2 rounded-2 border-opacity-50"
-            style={{ fontSize: '0.825rem' }}
+            className="btn w-100 d-flex align-items-center justify-content-center gap-2 rounded-2 fw-medium border-0"
+            style={{ 
+              backgroundColor: '#ef4444', 
+              color: '#ffffff',
+              fontSize: '0.825rem',
+              padding: '8px 12px'
+            }}
           >
-            <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg width="15" height="15" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
             </svg>
             <span>Cerrar Sesión</span>
