@@ -28,17 +28,17 @@ const DashboardLayout = ({ usuario, rol, tabActiva, setTabActiva, onLogout, chil
                 </button>
                 <button
                   type="button"
-                  onClick={() => setTabActiva('asignar')}
-                  className={`nav-link text-start d-flex align-items-center gap-2 ${tabActiva === 'asignar' ? 'active fw-bold' : 'text-white-50'}`}
-                >
-                  📝 <span>Asignar Carga</span>
-                </button>
-                <button
-                  type="button"
                   onClick={() => setTabActiva('docentes')}
                   className={`nav-link text-start d-flex align-items-center gap-2 ${tabActiva === 'docentes' ? 'active fw-bold' : 'text-white-50'}`}
                 >
                   👨‍🏫 <span>Gestionar Docentes</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setTabActiva('asignar')}
+                  className={`nav-link text-start d-flex align-items-center gap-2 ${tabActiva === 'asignar' ? 'active fw-bold' : 'text-white-50'}`}
+                >
+                  📝 <span>Asignar Carga</span>
                 </button>
                 <button
                   type="button"
