@@ -58,7 +58,7 @@ const DashboardLayout = ({ usuario, rol, tabActiva, setTabActiva, onLogout, chil
     }
   ];
 
-  // Si usuario no existe, o es literalmente el string "Usuario", mostramos "Administrador" (si rol es admin)
+  // Si usuario es nulo, indefinido o la palabra "Usuario", mostramos "Administrador" (si es admin)
   const esUsuarioGenerico = !usuario || usuario.toLowerCase() === 'usuario';
   const nombreMostrar = esUsuarioGenerico 
     ? (rol === 'admin' ? 'Administrador' : 'Usuario') 
@@ -116,12 +116,21 @@ const DashboardLayout = ({ usuario, rol, tabActiva, setTabActiva, onLogout, chil
         {/* Módulo de Cierre de Sesión e Información del Usuario */}
         <div className="sidebar-footer pt-3 mt-auto border-top border-secondary border-opacity-25" style={{ backgroundColor: 'transparent' }}>
           <div className="d-flex align-items-center gap-2 mb-3 px-1">
+            
+            {/* Avatar circular corregido (Fondo azul fuerte con letra A blanca) */}
             <div 
-              className="rounded-circle text-white d-flex align-items-center justify-content-center fw-bold"
-              style={{ width: '32px', height: '32px', backgroundColor: '#2563eb', fontSize: '0.85rem' }}
+              className="rounded-circle d-flex align-items-center justify-content-center fw-bold flex-shrink-0"
+              style={{ 
+                width: '36px', 
+                height: '36px', 
+                backgroundColor: '#2563eb', 
+                color: '#ffffff',
+                fontSize: '0.95rem' 
+              }}
             >
               {inicialMostrar}
             </div>
+
             <div className="text-truncate fw-semibold" style={{ color: '#ffffff', fontSize: '0.9rem' }}>
               {nombreMostrar}
             </div>
