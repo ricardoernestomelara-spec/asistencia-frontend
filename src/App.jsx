@@ -13,11 +13,23 @@ function App() {
   const [rol, setRol] = useState(localStorage.getItem('rol') || null);
   const [tabActiva, setTabActiva] = useState('secciones');
 
+  // Función compatible con cualquier nombre de prop que espere Login.jsx
   const handleLogin = (user, userRol) => {
+    // Si recibe un objeto en vez de parámetros separados (por desestructuración en Login.jsx)
+    if (typeof user === 'object' && user !== null) {
+      const u = user.usuario || user.user || 'Usuario';
+      const r = user.rol || 'admin';
+      setUsuario(u);
+      setRol(r);
+      localStorage.setItem('usuario', u);
+      localStorage.setItem('rol', r);
+      return;
+    }
+
     setUsuario(user);
-    setRol(userRol);
+    setRol(userRol || 'admin');
     localStorage.setItem('usuario', user);
-    localStorage.setItem('rol', userRol);
+    localStorage.setItem('rol', userRol || 'admin');
   };
 
   const handleLogout = () => {
@@ -28,7 +40,8 @@ function App() {
   };
 
   if (!usuario) {
-    return <Login onLogin={handleLogin} />;
+    // Pasamos tanto 'onLogin' como 'login' por compatibilidad con Login.jsx
+    return <Login onLogin={handleLogin} login={handleLogin} setUsuario={handleLogin} />;
   }
 
   return (
