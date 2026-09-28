@@ -12,7 +12,6 @@ function App() {
   const [usuario, setUsuario] = useState(localStorage.getItem('usuario') || null);
   const [rol, setRol] = useState(localStorage.getItem('rol') || null);
 
-  // Determinar la pestaña inicial según el rol almacenado
   const getInitialTab = (rolUsuario) => {
     return rolUsuario === 'docente' ? 'asistencia' : 'secciones';
   };
@@ -22,23 +21,24 @@ function App() {
     return getInitialTab(savedRol);
   });
 
-  // Función compatible con cualquier nombre de prop que espere Login.jsx
   const handleLogin = (user, userRol) => {
-    let u = user;
-    let r = userRol || 'admin';
+    let nombreFinal = 'Usuario';
+    let rolFinal = userRol || 'admin';
 
-    // Si recibe un objeto en vez de parámetros separados
     if (typeof user === 'object' && user !== null) {
-      u = user.usuario || user.user || 'Usuario';
-      r = user.rol || 'admin';
+      // Extrae el nombre buscando en todas las propiedades comunes que suele enviar la API
+      nombreFinal = user.nombre || user.usuario || user.user || user.name || user.email || 'Usuario';
+      rolFinal = user.rol || userRol || 'admin';
+    } else if (typeof user === 'string') {
+      nombreFinal = user;
     }
 
-    setUsuario(u);
-    setRol(r);
-    setTabActiva(getInitialTab(r));
+    setUsuario(nombreFinal);
+    setRol(rolFinal);
+    setTabActiva(getInitialTab(rolFinal));
 
-    localStorage.setItem('usuario', u);
-    localStorage.setItem('rol', r);
+    localStorage.setItem('usuario', nombreFinal);
+    localStorage.setItem('rol', rolFinal);
   };
 
   const handleLogout = () => {
@@ -52,7 +52,6 @@ function App() {
     return <Login onLogin={handleLogin} login={handleLogin} setUsuario={handleLogin} />;
   }
 
-  // Comprobar si el usuario actual es docente
   const esDocente = rol === 'docente';
 
   return (
@@ -63,10 +62,8 @@ function App() {
       setTabActiva={setTabActiva} 
       onLogout={handleLogout}
     >
-      {/* Vista de Asistencia accesible para Docentes y Administradores */}
       {(tabActiva === 'asistencia' || esDocente) && <TablaAsistencia usuario={usuario} rol={rol} />}
 
-      {/* Módulos exclusivos para Administrador */}
       {!esDocente && (
         <>
           {tabActiva === 'asignar' && <CargaAcademica />}

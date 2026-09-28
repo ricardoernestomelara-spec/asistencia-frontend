@@ -58,11 +58,8 @@ const DashboardLayout = ({ usuario, rol, tabActiva, setTabActiva, onLogout, chil
     }
   ];
 
-  const esUsuarioGenerico = !usuario || usuario.toLowerCase() === 'usuario';
-  const nombreMostrar = esUsuarioGenerico 
-    ? (rol === 'admin' ? 'Administrador' : 'Usuario') 
-    : usuario;
-
+  // Se toma exactamente el nombre recibido por props sin forzar reemplazos genericos
+  const nombreMostrar = usuario || 'Usuario';
   const inicialMostrar = nombreMostrar.charAt(0).toUpperCase();
 
   return (
@@ -89,7 +86,7 @@ const DashboardLayout = ({ usuario, rol, tabActiva, setTabActiva, onLogout, chil
             </div>
           </div>
 
-          {/* Menú de Navegación Vertical */}
+          {/* Menú de Navegación Vertical (Únicamente para Administradores) */}
           <nav className="nav flex-column gap-1">
             {rol === 'admin' && menuItems.map((item) => (
               <button
@@ -116,7 +113,7 @@ const DashboardLayout = ({ usuario, rol, tabActiva, setTabActiva, onLogout, chil
         <div className="sidebar-footer pt-3 mt-auto border-top border-secondary border-opacity-25" style={{ backgroundColor: 'transparent' }}>
           <div className="d-flex align-items-center gap-2 mb-3 px-1">
             
-            {/* Elemento Avatar aislado en etiqueta span para evitar conflicto CSS */}
+            {/* Círculo de Avatar */}
             <span 
               className="d-flex align-items-center justify-content-center fw-bold flex-shrink-0"
               style={{ 
