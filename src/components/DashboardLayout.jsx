@@ -119,16 +119,18 @@ const DashboardLayout = ({ usuario, rol, tabActiva, setTabActiva, onLogout, chil
             
             {/* Avatar circular corregido (Fondo azul fuerte con letra A blanca) */}
             <div 
-              className="rounded-circle d-flex align-items-center justify-content-center fw-bold flex-shrink-0"
-              style={{ 
-                width: '36px', 
-                height: '36px', 
-                backgroundColor: '#2563eb', 
-                color: '#ffffff',
-                fontSize: '0.95rem' 
-              }}
-            >
-              {inicialMostrar}
+                className="rounded-circle d-flex align-items-center justify-content-center fw-bold flex-shrink-0"
+                style={{ 
+                    width: '36px', 
+                    height: '36px', 
+                    backgroundColor: '#2563eb', 
+                    color: '#ffffff',
+                    fontSize: '0.95rem',
+                    background: '#2563eb !important',
+                    WebkitTextFillColor: '#ffffff'
+                }}
+                >
+                {inicialMostrar}
             </div>
 
             <div className="text-truncate fw-semibold" style={{ color: '#ffffff', fontSize: '0.9rem' }}>
