@@ -1,97 +1,136 @@
 import React from 'react';
 
 const DashboardLayout = ({ usuario, rol, tabActiva, setTabActiva, onLogout, children }) => {
+  const menuItems = [
+    {
+      id: 'asistencia',
+      label: 'Vista Asistencia',
+      icon: (
+        <svg className="w-5 h-5" width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
+        </svg>
+      )
+    },
+    {
+      id: 'docentes',
+      label: 'Gestionar Docentes',
+      icon: (
+        <svg className="w-5 h-5" width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+        </svg>
+      )
+    },
+    {
+      id: 'asignar',
+      label: 'Asignar Carga',
+      icon: (
+        <svg className="w-5 h-5" width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+        </svg>
+      )
+    },
+    {
+      id: 'secciones',
+      label: 'Gestionar Secciones',
+      icon: (
+        <svg className="w-5 h-5" width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5m0 0h4m-4 0V11m0 0h4m-4 0H9m4 0V5m0 0H9" />
+        </svg>
+      )
+    },
+    {
+      id: 'asignaturas',
+      label: 'Gestionar Asignaturas',
+      icon: (
+        <svg className="w-5 h-5" width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+        </svg>
+      )
+    },
+    {
+      id: 'todo',
+      label: 'Vista General',
+      icon: (
+        <svg className="w-5 h-5" width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
+        </svg>
+      )
+    }
+  ];
+
   return (
-    <div className="d-flex min-vh-100 bg-light">
+    <div className="d-flex min-vh-100" style={{ backgroundColor: '#f8fafc', fontFamily: 'Inter, system-ui, sans-serif' }}>
       {/* Sidebar Lateral Izquierdo */}
       <aside 
-        className="bg-dark text-white p-3 d-flex flex-column justify-content-between shadow"
-        style={{ width: '260px', minWidth: '260px' }}
+        className="d-flex flex-column justify-content-between p-3 border-end"
+        style={{ width: '260px', minWidth: '260px', backgroundColor: '#0f172a', color: '#f8fafc' }}
       >
         <div>
-          {/* Encabezado / Título */}
-          <div className="border-bottom border-secondary pb-3 mb-4 text-center">
-            <h5 className="fw-bold text-primary mb-1">Sistema Académico</h5>
-            <span className="badge bg-secondary text-uppercase">{rol || 'Usuario'}</span>
+          {/* Header Brand */}
+          <div className="d-flex align-items-center gap-3 px-2 py-3 mb-4 border-bottom border-secondary border-opacity-25">
+            <div 
+              className="d-flex align-items-center justify-content-center rounded-3 bg-primary text-white fw-bold"
+              style={{ width: '38px', height: '38px', fontSize: '1.2rem', background: 'linear-gradient(135deg, #2563eb, #1d4ed8)' }}
+            >
+              SA
+            </div>
+            <div>
+              <h6 className="fw-bold mb-0 text-white" style={{ letterSpacing: '-0.3px' }}>Sistema Académico</h6>
+              <span className="badge bg-secondary bg-opacity-25 text-info text-uppercase" style={{ fontSize: '10px' }}>
+                {rol || 'Usuario'}
+              </span>
+            </div>
           </div>
 
           {/* Menú de Navegación Vertical */}
-          <nav className="nav nav-pills flex-column gap-2">
-            {rol === 'admin' && (
-              <>
-                <button
-                  type="button"
-                  onClick={() => setTabActiva('asistencia')}
-                  className={`nav-link text-start d-flex align-items-center gap-2 ${tabActiva === 'asistencia' ? 'active fw-bold' : 'text-white-50'}`}
-                >
-                  📌 <span>Vista Asistencia</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setTabActiva('docentes')}
-                  className={`nav-link text-start d-flex align-items-center gap-2 ${tabActiva === 'docentes' ? 'active fw-bold' : 'text-white-50'}`}
-                >
-                  👨‍🏫 <span>Gestionar Docentes</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setTabActiva('asignar')}
-                  className={`nav-link text-start d-flex align-items-center gap-2 ${tabActiva === 'asignar' ? 'active fw-bold' : 'text-white-50'}`}
-                >
-                  📝 <span>Asignar Carga</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setTabActiva('secciones')}
-                  className={`nav-link text-start d-flex align-items-center gap-2 ${tabActiva === 'secciones' ? 'active fw-bold' : 'text-white-50'}`}
-                >
-                  🏫 <span>Gestionar Secciones</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setTabActiva('asignaturas')}
-                  className={`nav-link text-start d-flex align-items-center gap-2 ${tabActiva === 'asignaturas' ? 'active fw-bold' : 'text-white-50'}`}
-                >
-                  📚 <span>Gestionar Asignaturas</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setTabActiva('todo')}
-                  className={`nav-link text-start d-flex align-items-center gap-2 ${tabActiva === 'todo' ? 'active fw-bold' : 'text-white-50'}`}
-                >
-                  🌐 <span>Vista General</span>
-                </button>
-              </>
-            )}
-
-            {rol === 'docente' && (
+          <nav className="nav flex-column gap-1">
+            {rol === 'admin' && menuItems.map((item) => (
               <button
+                key={item.id}
                 type="button"
-                onClick={() => setTabActiva('asistencia')}
-                className={`nav-link text-start d-flex align-items-center gap-2 ${tabActiva === 'asistencia' ? 'active fw-bold' : 'text-white-50'}`}
+                onClick={() => setTabActiva(item.id)}
+                className={`btn d-flex align-items-center gap-3 px-3 py-2 text-start rounded-3 border-0 transition-all ${
+                  tabActiva === item.id 
+                    ? 'bg-primary text-white fw-semibold shadow-sm' 
+                    : 'text-secondary hover-text-white hover-bg'
+                }`}
+                style={{
+                  backgroundColor: tabActiva === item.id ? '#2563eb' : 'transparent',
+                  color: tabActiva === item.id ? '#ffffff' : '#94a3b8',
+                  fontSize: '0.9rem',
+                  transition: 'all 0.2s ease-in-out'
+                }}
               >
-                📋 <span>Mis Clases / Asistencia</span>
+                {item.icon}
+                <span>{item.label}</span>
               </button>
-            )}
+            ))}
           </nav>
         </div>
 
-        {/* Sección inferior: Usuario y Cerrar Sesión */}
-        <div className="border-top border-secondary pt-3 mt-4">
-          <div className="mb-2 text-center text-truncate small fw-semibold text-white-50">
-            👤 {usuario}
+        {/* User Card Inferior */}
+        <div className="p-3 rounded-3 mt-auto border border-secondary border-opacity-25" style={{ backgroundColor: '#1e293b' }}>
+          <div className="d-flex align-items-center gap-2 mb-2">
+            <div className="rounded-circle bg-secondary bg-opacity-50 text-white d-flex align-items-center justify-content-center small fw-bold" style={{ width: '28px', height: '28px' }}>
+              {usuario ? usuario.charAt(0).toUpperCase() : 'U'}
+            </div>
+            <div className="text-truncate small text-light fw-medium">{usuario}</div>
           </div>
           <button 
             type="button"
             onClick={onLogout} 
-            className="btn btn-outline-danger btn-sm w-100 fw-bold d-flex align-items-center justify-content-center gap-2"
+            className="btn btn-outline-danger btn-sm w-100 d-flex align-items-center justify-content-center gap-2 rounded-2"
+            style={{ fontSize: '0.8rem' }}
           >
-            🚪 <span>Cerrar Sesión</span>
+            <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+            </svg>
+            <span>Cerrar Sesión</span>
           </button>
         </div>
       </aside>
 
-      {/* Contenido Principal a la Derecha */}
+      {/* Contenido Principal */}
       <main className="flex-grow-1 p-4 overflow-auto" style={{ maxHeight: '100vh' }}>
         {children}
       </main>
