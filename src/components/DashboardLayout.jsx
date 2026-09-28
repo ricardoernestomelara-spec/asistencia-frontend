@@ -105,21 +105,12 @@ const DashboardLayout = ({ usuario, rol, tabActiva, setTabActiva, onLogout, chil
           </nav>
         </div>
 
-        {/* Módulo de Cierre de Sesión Integrado (Sin tarjeta ni contenedor blanco) */}
-        <div 
-          className="pt-3 mt-auto border-top border-secondary border-opacity-25"
-          style={{ backgroundColor: 'transparent', color: '#ffffff' }}
-        >
-          {/* Usuario */}
+        {/* Módulo de Usuario en la parte inferior */}
+        <div className="sidebar-footer pt-3 mt-auto border-top border-secondary border-opacity-25">
           <div className="d-flex align-items-center gap-2 mb-3 px-1">
             <div 
               className="rounded-circle text-white d-flex align-items-center justify-content-center fw-bold"
-              style={{ 
-                width: '32px', 
-                height: '32px', 
-                backgroundColor: '#2563eb',
-                fontSize: '0.85rem' 
-              }}
+              style={{ width: '32px', height: '32px', backgroundColor: '#2563eb', fontSize: '0.85rem' }}
             >
               {usuario ? usuario.charAt(0).toUpperCase() : 'U'}
             </div>
@@ -128,7 +119,6 @@ const DashboardLayout = ({ usuario, rol, tabActiva, setTabActiva, onLogout, chil
             </div>
           </div>
 
-          {/* Botón Rojo Sólido */}
           <button 
             type="button"
             onClick={onLogout} 
