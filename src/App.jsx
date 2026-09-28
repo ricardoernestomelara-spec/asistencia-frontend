@@ -10,7 +10,7 @@ export default function App() {
 
   const cerrarSesion = () => {
     localStorage.clear();
-    window.location.href = '/login';
+    window.location.href = '/';
   };
 
   return (
@@ -27,7 +27,7 @@ export default function App() {
         color: '#fff',
         display: 'flex',
         flexDirection: 'column',
-        justifyContent: 'space-between',
+        justify: 'space-between',
         padding: '20px 16px',
         boxSizing: 'border-box',
         zIndex: 1000
@@ -148,5 +148,3 @@ export default function App() {
     </div>
   );
 }
-
-//este es un comentario
