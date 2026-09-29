@@ -30,3 +30,5 @@ useEffect(() => {
 
   cargarReporte();
 }, [seccionId, asignaturaId, anio, mes]);
+
+export default ReporteMensual;
